@@ -1,3 +1,4 @@
+import cors from 'cors';
 import dotenv from "dotenv";
 import express from "express";
 import { MongoClient, ServerApiVersion } from 'mongodb';
@@ -6,6 +7,7 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import incidenciasRoutes from './routes/incidenciasRoutes.js';
 import whatsAppRoutes from './routes/whatsAppRoutes.js';
+
 
 const app = express();
 
@@ -55,7 +57,7 @@ app.use(express.static(
 
 //conectarDB();
 //sssssssss
-
+app.use(cors());
 const dominiosPermitidos = [process.env.FRONTEND_URL]
 
 const corsOptions = {
