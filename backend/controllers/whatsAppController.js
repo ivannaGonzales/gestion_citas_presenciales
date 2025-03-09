@@ -1,10 +1,12 @@
 
 import axios from 'axios';
+import { config } from 'dotenv';
 import OpenAI from 'openai';
 import path from "path";
 import { fileURLToPath } from 'url';
 import Incidencia from "../models/Incidencia.js";
 import { getTextUser } from '../utilities/util.js';
+config();
 
 const enviarMensaje = async (req, res) => {
     try {
@@ -99,8 +101,10 @@ const receiveMessage = async (req, res) => {
 };
 
 const respuestaChatGPTWhatsApp = async (respuesta, telefono) => {
+    const token = process.env.TOKEN_CHATGPT;
+    const apikey = process.env.API_KEY;
     const openai = new OpenAI({
-        apiKey: "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"
+        apiKey: apikey
     });
 
     var response = await openai.chat.completions.create({
@@ -116,7 +120,8 @@ const respuestaChatGPTWhatsApp = async (respuesta, telefono) => {
     const responseChatGPT = response.choices[0].message.content
 
     try {
-        const token = "EAA3AEzLOX2QBOz7L0iZArtasTwoauCVxDVs3Pt3ecX7HqTwzu49Yv3EYGomZCgBmC9n5ljpqD02ZBeGIbhbiIst1FB7Cs0zNr77eSnXZC9Ha98qz40ZChBZCVkQEht8jWsDeIRRmB2tGgj92Ewss8LyKKclwrElG4JZAgJRe3HvVPbuUJkIJnWIskmzxb3aqrdwlgZDZD"
+        const token = process.env.TOKEN_WHATSAPP
+        //const token = "EAA3AEzLOX2QBOz7L0iZArtasTwoauCVxDVs3Pt3ecX7HqTwzu49Yv3EYGomZCgBmC9n5ljpqD02ZBeGIbhbiIst1FB7Cs0zNr77eSnXZC9Ha98qz40ZChBZCVkQEht8jWsDeIRRmB2tGgj92Ewss8LyKKclwrElG4JZAgJRe3HvVPbuUJkIJnWIskmzxb3aqrdwlgZDZD"
         const api_url = "https://graph.facebook.com/v21.0/564314080092964/messages"
         const mensaje = {
             "messaging_product": "whatsapp",
@@ -139,7 +144,8 @@ const respuestaChatGPTWhatsApp = async (respuesta, telefono) => {
     }
 }
 const enviarConfirmacionCitaWhatsApp = async () => {
-    const token = "EAA3AEzLOX2QBOz7L0iZArtasTwoauCVxDVs3Pt3ecX7HqTwzu49Yv3EYGomZCgBmC9n5ljpqD02ZBeGIbhbiIst1FB7Cs0zNr77eSnXZC9Ha98qz40ZChBZCVkQEht8jWsDeIRRmB2tGgj92Ewss8LyKKclwrElG4JZAgJRe3HvVPbuUJkIJnWIskmzxb3aqrdwlgZDZD"
+    //const token = process.env.TOKEN_CHA
+
     const api_url = "https://graph.facebook.com/v21.0/564314080092964/messages"
     const mensaje = {
         "messaging_product": "whatsapp",
@@ -173,7 +179,7 @@ const enviarConfirmacionCitaWhatsApp = async () => {
 }
 const enviarCitaPresencialWhatsApp = async (incidencia) => {
     try {
-        const token = "EAA3AEzLOX2QBOz7L0iZArtasTwoauCVxDVs3Pt3ecX7HqTwzu49Yv3EYGomZCgBmC9n5ljpqD02ZBeGIbhbiIst1FB7Cs0zNr77eSnXZC9Ha98qz40ZChBZCVkQEht8jWsDeIRRmB2tGgj92Ewss8LyKKclwrElG4JZAgJRe3HvVPbuUJkIJnWIskmzxb3aqrdwlgZDZD"
+        const token = process.env.TOKEN_WHATSAPP
         const api_url = "https://graph.facebook.com/v21.0/564314080092964/messages"
         const mensaje = {
             "messaging_product": "whatsapp",
