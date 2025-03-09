@@ -1,0 +1,5 @@
+axios==1.7.9
+express==4.19.2
+dotenv==16.4.7
+mongoose==8.10.1
+openai==4.86.2
