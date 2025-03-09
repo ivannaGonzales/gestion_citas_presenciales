@@ -1,6 +1,9 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 import express from "express";
-import conectarDB from "./config/db.js";
+import { MongoClient, ServerApiVersion } from 'mongodb';
+import mongoose from "mongoose";
+import path from "path";
+import { fileURLToPath } from 'url';
 import pacienteRoutes from './routes/pacienteRoutes.js';
 import veterinarioRoutes from './routes/veterinarioRoutes.js';
 import whatsAppRoutes from './routes/whatsAppRoutes.js';
@@ -11,7 +14,49 @@ app.use(express.json())
 
 dotenv.config();
 
-conectarDB();
+//
+const uri = "mongodb+srv://gonzalesivanna8:BYseQe5Lth08uKni@cluster0.ap41x.mongodb.net/gestion_citas_presenciales?retryWrites=true&w=majority&appName=Cluster0";
+
+
+const client = new MongoClient(uri, {
+    serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+    }
+});
+
+
+async function run() {
+    try {
+        // Connect the client to the server	(optional starting in v4.7)
+        await client.connect();
+        // Send a ping to confirm a successful connection
+        await client.db("gestion_citas_presenciales").command({ ping: 1 });
+        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
+        const db = await mongoose.connect(uri, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+    } finally {
+        // Ensures that the client will close when you finish/error
+        await client.close();
+    }
+}
+run().catch(console.dir);
+
+// Obtener la ruta del archivo actual usando import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Configuración del servidor estático
+app.use(express.static(
+    path.resolve(__dirname, 'public')
+));
+
+//conectarDB();
+//
 
 const dominiosPermitidos = [process.env.FRONTEND_URL]
 
@@ -29,7 +74,7 @@ const corsOptions = {
 //app.use(cors(corsOptions));
 app.use("/api/veterinarios", veterinarioRoutes);
 app.use("/api/pacientes", pacienteRoutes);
-app.use("/api/gestion_credenciales", whatsAppRoutes)
+app.use("/api/gestion_citas_presenciales", whatsAppRoutes)
 
 const PORT = process.env.PORT || 4000;
 
