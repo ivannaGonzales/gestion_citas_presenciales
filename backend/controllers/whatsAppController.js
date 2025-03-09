@@ -1,12 +1,9 @@
 
-import axios from 'axios';
-import { config } from 'dotenv';
-import OpenAI from 'openai';
 import path from "path";
 import { fileURLToPath } from 'url';
 import Incidencia from "../models/Incidencia.js";
 import { getTextUser } from '../utilities/util.js';
-config();
+import { generarRespuestaChatGPT, llamadaServicio } from '../utilities/util_configuracion_whatsApp.js';
 
 const enviarMensaje = async (req, res) => {
     try {
@@ -101,52 +98,24 @@ const receiveMessage = async (req, res) => {
 };
 
 const respuestaChatGPTWhatsApp = async (respuesta, telefono) => {
-    const token = process.env.TOKEN_CHATGPT;
-    const apikey = process.env.API_KEY;
-    const openai = new OpenAI({
-        apiKey: apikey
-    });
 
-    var response = await openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-            { "role": "system", "content": "Soy un asistente especializado en gestión de citas presenciales" },
-            { "role": "user", "content": respuesta }
-        ],
-        max_tokens: 150,  // Número máximo de tokens en la respuesta
-        temperature: 0.7  // Controla la creatividad de la respuesta
-    });
+    const responseChatGPT = await generarRespuestaChatGPT();
 
-    const responseChatGPT = response.choices[0].message.content
-
-    try {
-        const token = process.env.TOKEN_WHATSAPP
-        //const token = "EAA3AEzLOX2QBOz7L0iZArtasTwoauCVxDVs3Pt3ecX7HqTwzu49Yv3EYGomZCgBmC9n5ljpqD02ZBeGIbhbiIst1FB7Cs0zNr77eSnXZC9Ha98qz40ZChBZCVkQEht8jWsDeIRRmB2tGgj92Ewss8LyKKclwrElG4JZAgJRe3HvVPbuUJkIJnWIskmzxb3aqrdwlgZDZD"
-        const api_url = "https://graph.facebook.com/v21.0/564314080092964/messages"
-        const mensaje = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": telefono,
-            "type": "text",
-            "text": {
-                "preview_url": false,
-                "body": responseChatGPT
-            }
+    const mensaje = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": telefono,
+        "type": "text",
+        "text": {
+            "preview_url": false,
+            "body": responseChatGPT
         }
-        const headers = {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        }
-        const response = await axios.post(api_url, mensaje, { headers });
     }
-    catch (error) {
-        console.error('Error al enviar el mensaje: chatgpt', error.response?.data || error.message);
-    }
+    await llamadaServicio(mensaje)
+
 }
 const enviarConfirmacionCitaWhatsApp = async () => {
     //const token = process.env.TOKEN_CHA
-
-    const api_url = "https://graph.facebook.com/v21.0/564314080092964/messages"
     const mensaje = {
         "messaging_product": "whatsapp",
         "to": "625958554",
@@ -163,7 +132,7 @@ const enviarConfirmacionCitaWhatsApp = async () => {
                         {
                             "parameter_name": "fecha",
                             "type": "text",
-                            "text": "03/05/2025"  // nombre
+                            "text": "03/05/2025"
                         }
                     ]
                 }
@@ -171,58 +140,44 @@ const enviarConfirmacionCitaWhatsApp = async () => {
         }
     }
 
-    const headers = {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-    }
-    await axios.post(api_url, mensaje, { headers });
+    await llamadaServicio(mensaje)
 }
 const enviarCitaPresencialWhatsApp = async (incidencia) => {
-    try {
-        const token = process.env.TOKEN_WHATSAPP
-        const api_url = "https://graph.facebook.com/v21.0/564314080092964/messages"
-        const mensaje = {
-            "messaging_product": "whatsapp",
-            "to": "625958554",
-            "type": "template",
-            "template": {
-                "name": "gestion_citas_presenciales",
-                "language": {
-                    "code": "es"
-                },
-                "components": [
-                    {
-                        "type": "body",
-                        "parameters": [
-                            {
-                                "parameter_name": "nombre",
-                                "type": "text",
-                                "text": incidencia.nombre  // nombre
-                            },
-                            {
-                                "parameter_name": "motivo",
-                                "type": "text",
-                                "text": incidencia.motivo  // motivo
-                            },
-                            {
-                                "parameter_name": "fecha",
-                                "type": "text",
-                                "text": "2025-03-01"  // fecha
-                            }
-                        ]
-                    }
-                ]
-            }
+
+    const mensaje = {
+        "messaging_product": "whatsapp",
+        "to": "625958554",
+        "type": "template",
+        "template": {
+            "name": "gestion_citas_presenciales",
+            "language": {
+                "code": "es"
+            },
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [
+                        {
+                            "parameter_name": "nombre",
+                            "type": "text",
+                            "text": incidencia.nombre
+                        },
+                        {
+                            "parameter_name": "motivo",
+                            "type": "text",
+                            "text": incidencia.motivo
+                        },
+                        {
+                            "parameter_name": "fecha",
+                            "type": "text",
+                            "text": "2025-03-01"
+                        }
+                    ]
+                }
+            ]
         }
-        const headers = {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-        }
-        const response = await axios.post(api_url, mensaje, { headers });
     }
-    catch (error) {
-        console.error('Error al enviar el mensaje:', error.response?.data || error.message);
-    }
+    await llamadaServicio(mensaje)
 }
 
 const politicas = async (req, res) => {
