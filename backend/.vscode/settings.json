@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/d000c6f4-7b09-4a4c-b439-91e0de2967a8/resourceGroups/node-tfg/providers/Microsoft.Web/sites/gestion-citas",
+    "appService.deploySubpath": "."
+}
