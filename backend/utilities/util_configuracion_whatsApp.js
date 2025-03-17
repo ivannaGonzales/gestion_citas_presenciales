@@ -25,10 +25,12 @@ const llamadaServicio = async (mensaje) => {
 
 }
 
-const generarRespuestaChatGPT = async () => {
+const generarRespuestaChatGPT = async (respuesta) => {
     try {
-
+        console.log('dentro de generarRespuestaChatGPT')
+        console.log('respuesta ', respuesta)
         const apikey = process.env.API_KEY;
+        console.log('apiKey ', apikey)
         const openai = new OpenAI({
             apiKey: apikey
         });
