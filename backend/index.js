@@ -4,8 +4,6 @@ import { MongoClient, ServerApiVersion } from 'mongodb';
 import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from 'url';
-import pacienteRoutes from './routes/pacienteRoutes.js';
-import veterinarioRoutes from './routes/veterinarioRoutes.js';
 import whatsAppRoutes from './routes/whatsAppRoutes.js';
 
 const app = express();
@@ -72,8 +70,6 @@ const corsOptions = {
 }
 
 //app.use(cors(corsOptions));
-app.use("/api/veterinarios", veterinarioRoutes);
-app.use("/api/pacientes", pacienteRoutes);
 app.use("/api/gestion_citas_presenciales", whatsAppRoutes)
 
 const PORT = process.env.PORT || 4000;

@@ -75,12 +75,9 @@ const receiveMessage = async (req, res) => {
         const telefono = body.entry[0].changes[0].value.messages[0].from
 
         if (respuesta == "Si") {
-
             await enviarConfirmacionCitaWhatsApp();
-
         } else {
             await respuestaChatGPTWhatsApp(respuesta, telefono)
-
         }
 
         return res.status(200).json({
@@ -99,7 +96,7 @@ const receiveMessage = async (req, res) => {
 
 const respuestaChatGPTWhatsApp = async (respuesta, telefono) => {
 
-    const responseChatGPT = await generarRespuestaChatGPT();
+    const responseChatGPT = await generarRespuestaChatGPT(respuesta);
 
     const mensaje = {
         "messaging_product": "whatsapp",
@@ -112,7 +109,6 @@ const respuestaChatGPTWhatsApp = async (respuesta, telefono) => {
         }
     }
     await llamadaServicio(mensaje)
-
 }
 const enviarConfirmacionCitaWhatsApp = async () => {
     //const token = process.env.TOKEN_CHA
