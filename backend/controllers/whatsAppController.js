@@ -72,12 +72,26 @@ const receiveMessage = async (req, res) => {
     try {
         const body = req.body;
         const respuesta = await getTextUser(body)
-        const telefono = body.entry[0].changes[0].value.messages[0].from
+        //const telefono = body.entry[0].changes[0].value.messages[0].from
+        const telefono = body.entry[0].changes[0].value.contacts[0].wa_id
+        const usuario = body.entry[0].changes[0].value.contacts[0].profile.name
+        console.log('telefono ', telefono)
+        console.log('usuario ', usuario)
+        const motivo = await Incidencia.findOne({
+            $and: [
+                { nombre: usuario },
+                { numero: telefono }
+            ]
+        }, {
+            _id: 0,
+            motivo: 1
+        })
+        console.log('motivo eye of the trigger', motivo.motivo)
 
         if (respuesta == "Si") {
-            await enviarConfirmacionCitaWhatsApp();
+            await enviarConfirmacionCitaWhatsApp(body.entry[0].changes[0].value.contacts[0].wa_id);
         } else {
-            await respuestaChatGPTWhatsApp(respuesta, telefono)
+            await respuestaChatGPTWhatsApp(respuesta, telefono, motivo.motivo)
         }
 
         return res.status(200).json({
@@ -94,9 +108,9 @@ const receiveMessage = async (req, res) => {
     }
 };
 
-const respuestaChatGPTWhatsApp = async (respuesta, telefono) => {
+const respuestaChatGPTWhatsApp = async (respuesta, telefono, motivo) => {
 
-    const responseChatGPT = await generarRespuestaChatGPT(respuesta);
+    const responseChatGPT = await generarRespuestaChatGPT(respuesta, motivo);
 
     const mensaje = {
         "messaging_product": "whatsapp",
@@ -110,8 +124,7 @@ const respuestaChatGPTWhatsApp = async (respuesta, telefono) => {
     }
     await llamadaServicio(mensaje)
 }
-const enviarConfirmacionCitaWhatsApp = async () => {
-    //const token = process.env.TOKEN_CHA
+const enviarConfirmacionCitaWhatsApp = async (body) => {
     const mensaje = {
         "messaging_product": "whatsapp",
         "to": "625958554",
@@ -128,7 +141,7 @@ const enviarConfirmacionCitaWhatsApp = async () => {
                         {
                             "parameter_name": "fecha",
                             "type": "text",
-                            "text": "03/05/2025"
+                            "text": body
                         }
                     ]
                 }
