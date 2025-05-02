@@ -4,10 +4,11 @@ import { fileURLToPath } from 'url';
 import Incidencia from "../models/Incidencia.js";
 import { getTextUser } from '../utilities/util.js';
 import { generarRespuestaChatGPT, llamadaServicio } from '../utilities/util_configuracion_whatsApp.js';
+import { convertirAISO8601, obtenerFechaCitaInicial } from '../utilities/util_formato_fecha.js';
 
 const enviarMensaje = async (req, res) => {
     try {
-        // Obtener la incidencia abierta
+
         const incidenciaAbierta = await Incidencia.findOne({ resuelta: false });
         // Verificar si existe la incidencia
         if (!incidenciaAbierta) {
@@ -17,7 +18,8 @@ const enviarMensaje = async (req, res) => {
             });
         }
 
-        await enviarCitaPresencialWhatsApp(incidenciaAbierta);
+        const fechaCitaInicial = obtenerFechaCitaInicial();
+        await enviarCitaPresencialWhatsApp(incidenciaAbierta, fechaCitaInicial.fecha, fechaCitaInicial.hora);
 
         return res.status(200).json({
             success: true,
@@ -72,11 +74,10 @@ const receiveMessage = async (req, res) => {
     try {
         const body = req.body;
         const respuesta = await getTextUser(body)
-        //const telefono = body.entry[0].changes[0].value.messages[0].from
         const telefono = body.entry[0].changes[0].value.contacts[0].wa_id
         const usuario = body.entry[0].changes[0].value.contacts[0].profile.name
-        console.log('telefono ', telefono)
-        console.log('usuario ', usuario)
+        let respuestaChatGPT;
+
         const motivo = await Incidencia.findOne({
             $and: [
                 { nombre: usuario },
@@ -86,17 +87,32 @@ const receiveMessage = async (req, res) => {
             _id: 0,
             motivo: 1
         })
-        console.log('motivo eye of the trigger', motivo.motivo)
-
         if (respuesta == "Si") {
-            await enviarConfirmacionCitaWhatsApp(body.entry[0].changes[0].value.contacts[0].wa_id);
+            const fechaCitaInicial = obtenerFechaCitaInicial();
+            await enviarConfirmacionCitaWhatsApp(telefono, fechaCitaInicial.fecha, fechaCitaInicial.hora);
         } else {
-            await respuestaChatGPTWhatsApp(respuesta, telefono, motivo.motivo)
+            respuestaChatGPT = await respuestaChatGPTWhatsApp(respuesta, telefono, motivo.motivo)
+        }
+
+        try {
+            const fecha = convertirAISO8601(respuestaChatGPT, 'Central European Time');
+            //modificar la fecha
+            await Incidencia.findOneAndUpdate(
+                { nombre: usuario, numero: telefono }, // Criterios de búsqueda
+                {
+                    fecha: fecha,
+                    resuelta: true
+                }, // Actualización
+                { new: true } // Retorna el documento actualizado
+            );
+
+        } catch (error) {
+            console.log('error ', error)
         }
 
         return res.status(200).json({
             success: true,
-            message: 'EVENT_RECEIVED'
+            message: 'EVENT_RECEIVED ' || fecha
         });
 
     } catch (error) {
@@ -123,11 +139,13 @@ const respuestaChatGPTWhatsApp = async (respuesta, telefono, motivo) => {
         }
     }
     await llamadaServicio(mensaje)
+
+    return responseChatGPT
 }
-const enviarConfirmacionCitaWhatsApp = async (body) => {
+const enviarConfirmacionCitaWhatsApp = async (telefono, fecha, hora) => {
     const mensaje = {
         "messaging_product": "whatsapp",
-        "to": "625958554",
+        "to": telefono,
         "type": "template",
         "template": {
             "name": "cita_presencial_registrada",
@@ -141,7 +159,12 @@ const enviarConfirmacionCitaWhatsApp = async (body) => {
                         {
                             "parameter_name": "fecha",
                             "type": "text",
-                            "text": body
+                            "text": fecha
+                        },
+                        {
+                            "parameter_name": "hora",
+                            "type": "text",
+                            "text": hora
                         }
                     ]
                 }
@@ -151,11 +174,11 @@ const enviarConfirmacionCitaWhatsApp = async (body) => {
 
     await llamadaServicio(mensaje)
 }
-const enviarCitaPresencialWhatsApp = async (incidencia) => {
+const enviarCitaPresencialWhatsApp = async (incidencia, fecha, hora) => {
 
     const mensaje = {
         "messaging_product": "whatsapp",
-        "to": "625958554",
+        "to": incidencia.numero,//aqui hay que tener cuidado porque le estoy pasando un número fijo 
         "type": "template",
         "template": {
             "name": "gestion_citas_presenciales",
@@ -179,7 +202,12 @@ const enviarCitaPresencialWhatsApp = async (incidencia) => {
                         {
                             "parameter_name": "fecha",
                             "type": "text",
-                            "text": "2025-03-01"
+                            "text": fecha
+                        },
+                        {
+                            "parameter_name": "hora",
+                            "type": "text",
+                            "text": hora
                         }
                     ]
                 }
