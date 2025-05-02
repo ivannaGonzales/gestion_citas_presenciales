@@ -14,6 +14,7 @@ const incidenciaSchema = mongoose.Schema({
         type: Number,
         required: true
     },
+
     fecha: {
         type: Date,
         required: false,
