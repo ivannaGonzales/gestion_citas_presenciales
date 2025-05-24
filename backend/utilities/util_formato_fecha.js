@@ -1,69 +1,5 @@
+import axios from 'axios';
 import moment from "moment-timezone";
-
-function obtenerDiaEncontrado(texto) {
-    const diasDeLaSemana = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-    const diaEncontrado = diasDeLaSemana.find(dia => texto.toLowerCase().includes(dia));
-    if (!diaEncontrado) {
-        throw new Error("No se encontró un día de la semana en el texto.");
-    }
-    return diaEncontrado;
-}
-
-function cambiarEspañolAIngles(diaSemana) {
-    const mapearDia = {
-        "domingo": "Sunday",
-        "lunes": "Monday",
-        "martes": "Tuesday",
-        "miércoles": "Wednesday",
-        "jueves": "Thursday",
-        "viernes": "Friday",
-        "sábado": "Saturday"
-    };
-    const diaNormalizado = diaSemana.toLowerCase();
-
-    // Retornar el valor mapeado o lanzar un error si no existe
-    if (mapearDia[diaNormalizado]) {
-        return mapearDia[diaNormalizado];
-    } else {
-        throw new Error("El día ingresado no es válido.");
-    }
-}
-
-function obtenerFecha(texto, zonaHoraria) {
-    let diaEncontrado = obtenerDiaEncontrado(texto);
-
-    // Obtiene la fecha actual
-    const fechaHoy = moment.tz(zonaHoraria);
-
-    diaEncontrado = cambiarEspañolAIngles(diaEncontrado);
-
-    // Configura la fecha objetivo
-    let fechaObjetivo = fechaHoy.clone().day(diaEncontrado);
-
-    // Si ya pasó este día en la semana, ajusta para el próximo
-    if (fechaObjetivo.isBefore(fechaHoy)) {
-        fechaObjetivo.add(7, "days");
-    }
-    return fechaObjetivo;
-}
-
-function obtenerHora(texto) {
-    // Extrae la hora del texto (ej. "3 de la tarde")
-    const horaRegex = /(\d{1,2})\s?(de la tarde|de la mañana|p\.?m\.?|a\.?m\.?)/i;
-    const coincidenciaHora = texto.match(horaRegex);
-
-    if (!coincidenciaHora) {
-        throw new Error("No se encontró una hora válida en el texto.");
-    }
-    let hora = parseInt(coincidenciaHora[1], 10);
-
-    const periodo = coincidenciaHora[2].toLowerCase();
-
-    if (periodo.includes("tarde") || periodo.includes("p.m")) {
-        hora += 12;
-    }
-    return hora;
-}
 
 /*
 * Se encarga de obtener la primera fecha
@@ -90,36 +26,86 @@ function obtenerFechaCitaInicial() {
     // Retornar un objeto con la fecha y hora
     return {
         fecha: diaSiguiente.format("YYYY-MM-DD"),
-        hora: '15:00'
+        hora: '17:00'
     };
 }
 
-function convertirAISO8601(texto, zonaHoraria) {
+const datos = {}
+const unirDiaHora = async (dia, hora) => {
 
-    const fecha = obtenerFecha(texto, zonaHoraria);
+    const fechaSolo = dia.split('T')[0];
+    const horaCompleta = hora.split('T')[1];
+    return `${fechaSolo}T${horaCompleta}`;
 
-    const hora = obtenerHora(texto);
-
-    // Configura la hora en la fecha
-    fecha.hour(hora).minute(0).second(0);
-
-    // Convertir a la zona horaria local y devolver el formato ISO 8601
-    return fecha.tz(zonaHoraria).format(); // Esto asegura que la hora sea local
 }
+const analizarRespuesta = async (data) => {
+    // Asegurar que data es un array y tiene al menos dos elementos
+    let fecha = null; //la fecha
+    let tipo = null; // hour, minute, day
+    let primeraFecha = null;
 
-function convertirFechaISO(fechaTexto, zonaHoraria) {
-    let fecha = moment.tz(fechaTexto, "YYYY-MM-DD", zonaHoraria);
+    console.log('estoy dentro de analizarRespuesta')
 
-    return fecha.format("YYYY-MM-DDTHH:mm:ss.SSSZ");
-}
+    //me recorro para casos del tipo "el 7 de mayo quiero una cita"
+    data.forEach(item => {
+        if (item.value.values) {
+            primeraFecha = item.value.values[0];
+            fecha = primeraFecha.value;
+            tipo = primeraFecha.grain;
+        }
 
-export {
-    convertirAISO8601, obtenerFechaCitaInicial
+    });
+
+    if (tipo == 'day') {
+        //solo me dan el día
+        //por ejemplo: el 7 de mayo quiero una cita"
+        datos.dia = fecha
+
+    } else if (tipo == 'minute') {
+        //por ejemplo: Necesito una cita el 12 de junio a las 10:00 AM
+        datos.diaExacto = fecha
+    } else if (tipo == 'hour') {
+        //por ejemplo: a las 3 de la tarde
+        datos.hora = fecha
+    }
+    //
+
+    if (datos.diaExacto != null) {
+        fecha = datos.diaExacto
+    } else if (datos.dia != null && datos.hora != null) {
+        fecha = `${datos.dia.split("T")[0]}T${datos.hora.split("T")[1]}`;
+    }
+
+    return fecha
+
 };
+const obtenerFechaCita = async (texto) => {
+    try {
+        // Construir el cuerpo en formato x-www-form-urlencoded
+        const body = new URLSearchParams();
+        body.append('text', texto);
+        body.append('lang', 'es');
 
-// Ejemplo de uso
-const texto = "He agendado una cita para el cliente el Martes a las 3 de la tarde";
-const zonaHoraria = "Europe/Madrid"; // Usamos la zona horaria correcta
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        };
 
-const fechaActual = convertirFechaISO('2025-04-11', 'Central European Time');
-console.log('fechaActual ', fechaActual)
+        const response = await axios.post('http://localhost:8000/parse', body.toString(), { headers });
+
+        //console.log(JSON.stringify(response.data, null, 2));
+        return await analizarRespuesta(response.data)
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+
+            message: error.message
+        });
+    }
+};
+export { analizarRespuesta, obtenerFechaCita, obtenerFechaCitaInicial };
+
+
+//obtenerFechaCita("Quiero una cita el 22 de mayo")
+//console.log("final de los final -> ", await obtenerFechaCita("a las 3 de la tarde"))
+

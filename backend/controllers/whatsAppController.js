@@ -1,10 +1,11 @@
 
+import axios from 'axios';
 import path from "path";
 import { fileURLToPath } from 'url';
 import Incidencia from "../models/Incidencia.js";
 import { getTextUser } from '../utilities/util.js';
 import { generarRespuestaChatGPT, llamadaServicio } from '../utilities/util_configuracion_whatsApp.js';
-import { convertirAISO8601, obtenerFechaCitaInicial } from '../utilities/util_formato_fecha.js';
+import { analizarRespuesta, obtenerFechaCita, obtenerFechaCitaInicial } from '../utilities/util_formato_fecha.js';
 
 const enviarMensaje = async (req, res) => {
     try {
@@ -69,6 +70,38 @@ const configurarTokenWhatsApp = async (req, res) => {
 };
 
 
+const prueba = async (req, res) => {
+    try {
+        // Construir el cuerpo en formato x-www-form-urlencoded
+        const texto = "Necesito una cita el 12 de junio a las 10:00 AM.";
+        const body = new URLSearchParams();
+        body.append('text', texto);
+        body.append('lang', 'es');
+
+        const headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        };
+
+        const response = await axios.post('http://localhost:8000/parse', body.toString(), { headers });
+        const respuesta = await analizarRespuesta(response.data)
+
+        return res.status(200).json({
+            success: true,
+            message: respuesta
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+
+            message: error.message
+        });
+    }
+
+}
+
+
+
 const receiveMessage = async (req, res) => {
 
     try {
@@ -77,6 +110,7 @@ const receiveMessage = async (req, res) => {
         const telefono = body.entry[0].changes[0].value.contacts[0].wa_id
         const usuario = body.entry[0].changes[0].value.contacts[0].profile.name
         let respuestaChatGPT;
+        let fecha;
 
         const motivo = await Incidencia.findOne({
             $and: [
@@ -91,12 +125,40 @@ const receiveMessage = async (req, res) => {
             const fechaCitaInicial = obtenerFechaCitaInicial();
             await enviarConfirmacionCitaWhatsApp(telefono, fechaCitaInicial.fecha, fechaCitaInicial.hora);
         } else {
-            respuestaChatGPT = await respuestaChatGPTWhatsApp(respuesta, telefono, motivo.motivo)
+            //obtener fecha 
+            try {
+                await Incidencia.findOneAndUpdate(
+                    { nombre: usuario, numero: telefono }, // Criterios de búsqueda
+                    {
+                        fecha: "2025-05-27T22:00:00.000+00:00",
+                        resuelta: true
+                    }, // Actualización
+                    { new: true } // Retorna el documento actualizado
+                );
+                fecha = await obtenerFechaCita(respuesta);
+                await Incidencia.findOneAndUpdate(
+                    { nombre: usuario, numero: telefono }, // Criterios de búsqueda
+                    {
+                        fecha: fecha,
+                        resuelta: true
+                    }, // Actualización
+                    { new: true } // Retorna el documento actualizado
+                );
+
+                respuestaChatGPT = await respuestaChatGPTWhatsApp(respuesta, telefono, motivo.motivo)
+            } catch (error) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Error maximo',
+                    error: error.message
+                });
+            }
+
         }
 
-        try {
-            const fecha = convertirAISO8601(respuestaChatGPT, 'Central European Time');
-            //modificar la fecha
+        console.log('the bridgertons ', fecha)
+        if (fecha != null) {
+
             await Incidencia.findOneAndUpdate(
                 { nombre: usuario, numero: telefono }, // Criterios de búsqueda
                 {
@@ -106,10 +168,7 @@ const receiveMessage = async (req, res) => {
                 { new: true } // Retorna el documento actualizado
             );
 
-        } catch (error) {
-            console.log('error ', error)
         }
-
         return res.status(200).json({
             success: true,
             message: 'EVENT_RECEIVED ' || fecha
@@ -125,6 +184,7 @@ const receiveMessage = async (req, res) => {
 };
 
 const respuestaChatGPTWhatsApp = async (respuesta, telefono, motivo) => {
+
 
     const responseChatGPT = await generarRespuestaChatGPT(respuesta, motivo);
 
@@ -222,5 +282,5 @@ const politicas = async (req, res) => {
     const __dirname = path.dirname(__filename);
     res.sendFile(path.join(__dirname, '..', 'public', 'politicas.html'));
 }
-export { configurarTokenWhatsApp, enviarCitaPresencialWhatsApp, enviarConfirmacionCitaWhatsApp, enviarMensaje, politicas, receiveMessage };
+export { configurarTokenWhatsApp, enviarCitaPresencialWhatsApp, enviarConfirmacionCitaWhatsApp, enviarMensaje, politicas, prueba, receiveMessage };
 

@@ -31,17 +31,26 @@ const generarRespuestaChatGPT = async (respuesta, motivo) => {
         const openai = new OpenAI({
             apiKey: apikey
         });
+        /*const prompt_inicial = (
+            "Eres un asistente virtual que ayuda a gestionar citas presenciales. ",
+            "Ya conoces el motivo de la cita " + motivo,
+            "Solicita de forma educada al usuario solamente fecha y hora de la cita",
+            "En el caso que solo te informen el dia tambien preguntar por la hora",
+            "Confirma la cita con un resumen y ofrece ayuda adicional si la necesita.\n\n"
+        )*/
+
+        const prompt_inicial = (
+            "Eres un gestor de citas presenciales. Tu tarea es preguntar al usuario por un día y una hora para la cita. Si el usuario solo responde con el día, debes insistir en que también proporcione la hora exacta antes de continuar."
+        )
+
         var response = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
+            model: 'gpt-4',
             messages: [
-                {
-                    "role": "system", "content": "Soy un asistente especializado en gestión de citas presenciales para el motivo " + motivo +
-                        ".Solo necesito preguntar por la fecha y la hora de la cita. Ya tengo registrado el nombre completo, número de teléfono y ubicación del cliente y demás información que necesito."
-                },
+                { "role": "system", "content": prompt_inicial },
                 { "role": "user", "content": respuesta }
             ],
             max_tokens: 150,
-            temperature: 0.7
+            temperature: 0.5
         });
         return response.choices[0].message.content
 
