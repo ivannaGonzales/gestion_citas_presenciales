@@ -72,10 +72,13 @@ const analizarRespuesta = async (data) => {
 
     if (datos.diaExacto != null) {
         fecha = datos.diaExacto
+        console.log('fecha primera ', fecha)
+        fecha = moment.parseZone(fecha).utcOffset(0, true).format("YYYY-MM-DDTHH:mm:ss.SSSZ").replace("Z", "+00:00")
     } else if (datos.dia != null && datos.hora != null) {
         fecha = `${datos.dia.split("T")[0]}T${datos.hora.split("T")[1]}`;
+        fecha = moment.parseZone(fecha).utcOffset(0, true).format("YYYY-MM-DDTHH:mm:ss.SSSZ").replace("Z", "+00:00")
     }
-
+    console.log('fecha ', fecha)
     return fecha
 
 };
@@ -90,9 +93,8 @@ const obtenerFechaCita = async (texto) => {
             'Content-Type': 'application/x-www-form-urlencoded',
         };
 
-        const response = await axios.post('http://localhost:8000/parse', body.toString(), { headers });
+        const response = await axios.post('https://appgestioncitas.azurewebsites.net/parse', body.toString(), { headers });
 
-        //console.log(JSON.stringify(response.data, null, 2));
         return await analizarRespuesta(response.data)
 
     } catch (error) {
@@ -106,6 +108,4 @@ const obtenerFechaCita = async (texto) => {
 export { analizarRespuesta, obtenerFechaCita, obtenerFechaCitaInicial };
 
 
-//obtenerFechaCita("Quiero una cita el 22 de mayo")
-//console.log("final de los final -> ", await obtenerFechaCita("a las 3 de la tarde"))
 

@@ -40,7 +40,7 @@ const generarRespuestaChatGPT = async (respuesta, motivo) => {
         )*/
 
         const prompt_inicial = (
-            "Eres un gestor de citas presenciales. Tu tarea es preguntar al usuario por un día y una hora para la cita. Si el usuario solo responde con el día, debes insistir en que también proporcione la hora exacta antes de continuar."
+            "Eres un gestor de citas presenciales. Tu tarea es preguntar al usuario por un día y una hora para la cita. Si el usuario solo responde con el día, debes insistir en que también proporcione la hora exacta antes de continuar. Y no te repitas si ya te dieron el dato"
         )
 
         var response = await openai.chat.completions.create({

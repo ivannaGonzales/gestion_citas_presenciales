@@ -1,11 +1,10 @@
 
-import axios from 'axios';
 import path from "path";
 import { fileURLToPath } from 'url';
 import Incidencia from "../models/Incidencia.js";
 import { getTextUser } from '../utilities/util.js';
 import { generarRespuestaChatGPT, llamadaServicio } from '../utilities/util_configuracion_whatsApp.js';
-import { analizarRespuesta, obtenerFechaCita, obtenerFechaCitaInicial } from '../utilities/util_formato_fecha.js';
+import { obtenerFechaCita, obtenerFechaCitaInicial } from '../utilities/util_formato_fecha.js';
 
 const enviarMensaje = async (req, res) => {
     try {
@@ -24,7 +23,7 @@ const enviarMensaje = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Mensaje enviado exitosamente'
+            message: 'Mensaje enviado exitosamente yo no olvido'
         });
 
     } catch (error) {
@@ -70,36 +69,6 @@ const configurarTokenWhatsApp = async (req, res) => {
 };
 
 
-const prueba = async (req, res) => {
-    try {
-        // Construir el cuerpo en formato x-www-form-urlencoded
-        const texto = "Necesito una cita el 12 de junio a las 10:00 AM.";
-        const body = new URLSearchParams();
-        body.append('text', texto);
-        body.append('lang', 'es');
-
-        const headers = {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        };
-
-        const response = await axios.post('http://localhost:8000/parse', body.toString(), { headers });
-        const respuesta = await analizarRespuesta(response.data)
-
-        return res.status(200).json({
-            success: true,
-            message: respuesta
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-
-            message: error.message
-        });
-    }
-
-}
-
 
 
 const receiveMessage = async (req, res) => {
@@ -126,47 +95,17 @@ const receiveMessage = async (req, res) => {
             await enviarConfirmacionCitaWhatsApp(telefono, fechaCitaInicial.fecha, fechaCitaInicial.hora);
         } else {
             //obtener fecha 
-            try {
-                await Incidencia.findOneAndUpdate(
-                    { nombre: usuario, numero: telefono }, // Criterios de búsqueda
-                    {
-                        fecha: "2025-05-27T22:00:00.000+00:00",
-                        resuelta: true
-                    }, // Actualización
-                    { new: true } // Retorna el documento actualizado
-                );
-                fecha = await obtenerFechaCita(respuesta);
-                await Incidencia.findOneAndUpdate(
-                    { nombre: usuario, numero: telefono }, // Criterios de búsqueda
-                    {
-                        fecha: fecha,
-                        resuelta: true
-                    }, // Actualización
-                    { new: true } // Retorna el documento actualizado
-                );
-
-                respuestaChatGPT = await respuestaChatGPTWhatsApp(respuesta, telefono, motivo.motivo)
-            } catch (error) {
-                return res.status(500).json({
-                    success: false,
-                    message: 'Error maximo',
-                    error: error.message
-                });
-            }
-
-        }
-
-        console.log('the bridgertons ', fecha)
-        if (fecha != null) {
-
+            fecha = await obtenerFechaCita(respuesta);
             await Incidencia.findOneAndUpdate(
-                { nombre: usuario, numero: telefono }, // Criterios de búsqueda
+                { nombre: usuario, numero: telefono },
                 {
                     fecha: fecha,
                     resuelta: true
-                }, // Actualización
-                { new: true } // Retorna el documento actualizado
+                },
+                { new: true }
             );
+
+            respuestaChatGPT = await respuestaChatGPTWhatsApp(respuesta, telefono, motivo.motivo)
 
         }
         return res.status(200).json({
@@ -282,5 +221,5 @@ const politicas = async (req, res) => {
     const __dirname = path.dirname(__filename);
     res.sendFile(path.join(__dirname, '..', 'public', 'politicas.html'));
 }
-export { configurarTokenWhatsApp, enviarCitaPresencialWhatsApp, enviarConfirmacionCitaWhatsApp, enviarMensaje, politicas, prueba, receiveMessage };
+export { configurarTokenWhatsApp, enviarCitaPresencialWhatsApp, enviarConfirmacionCitaWhatsApp, enviarMensaje, politicas, receiveMessage };
 

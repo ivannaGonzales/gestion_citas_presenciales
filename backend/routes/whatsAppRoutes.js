@@ -5,7 +5,6 @@ import {
     enviarConfirmacionCitaWhatsApp,
     enviarMensaje,
     politicas,
-    prueba,
     receiveMessage
 } from '../controllers/whatsAppController.js';
 
@@ -17,7 +16,6 @@ router.post('/whatsApp', receiveMessage);
 router.post('/enviarMensaje', enviarMensaje)
 router.get('/politicas', politicas)
 router.post('/confirmacion', enviarConfirmacionCitaWhatsApp)
-router.get('/prueba', prueba)
 
 export default router;
 
