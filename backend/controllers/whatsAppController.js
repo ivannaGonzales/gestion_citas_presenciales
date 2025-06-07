@@ -5,7 +5,7 @@ import Incidencia from "../models/Incidencia.js";
 import { getTextUser } from '../utilities/util.js';
 import { generarRespuestaChatGPT, llamadaServicio } from '../utilities/util_configuracion_whatsApp.js';
 import { obtenerFechaCita, obtenerFechaCitaInicial } from '../utilities/util_formato_fecha.js';
-
+import { guardarMensaje, obtenerContenidosMensajes, obtenerMensajes } from '../utilities/util_mensaje.js';
 const enviarMensaje = async (req, res) => {
     try {
 
@@ -23,7 +23,7 @@ const enviarMensaje = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Mensaje enviado exitosamente yo no olvido'
+            message: 'Mensaje enviado exitosamente pues mira tu'
         });
 
     } catch (error) {
@@ -94,8 +94,9 @@ const receiveMessage = async (req, res) => {
             const fechaCitaInicial = obtenerFechaCitaInicial();
             await enviarConfirmacionCitaWhatsApp(telefono, fechaCitaInicial.fecha, fechaCitaInicial.hora);
         } else {
-            //obtener fecha 
-            fecha = await obtenerFechaCita(respuesta);
+            await guardarMensaje(respuesta, telefono);
+            await obtenerMensajes(telefono);
+            fecha = await obtenerFechaCita(telefono);
             await Incidencia.findOneAndUpdate(
                 { nombre: usuario, numero: telefono },
                 {
@@ -104,9 +105,7 @@ const receiveMessage = async (req, res) => {
                 },
                 { new: true }
             );
-
-            respuestaChatGPT = await respuestaChatGPTWhatsApp(respuesta, telefono, motivo.motivo)
-
+            respuestaChatGPT = await respuestaChatGPTWhatsApp(await obtenerContenidosMensajes(telefono), telefono, motivo.motivo)
         }
         return res.status(200).json({
             success: true,

@@ -27,17 +27,12 @@ const llamadaServicio = async (mensaje) => {
 
 const generarRespuestaChatGPT = async (respuesta, motivo) => {
     try {
+
+
         const apikey = process.env.API_KEY;
         const openai = new OpenAI({
             apiKey: apikey
         });
-        /*const prompt_inicial = (
-            "Eres un asistente virtual que ayuda a gestionar citas presenciales. ",
-            "Ya conoces el motivo de la cita " + motivo,
-            "Solicita de forma educada al usuario solamente fecha y hora de la cita",
-            "En el caso que solo te informen el dia tambien preguntar por la hora",
-            "Confirma la cita con un resumen y ofrece ayuda adicional si la necesita.\n\n"
-        )*/
 
         const prompt_inicial = (
             "Eres un gestor de citas presenciales. Tu tarea es preguntar al usuario por un día y una hora para la cita. Si el usuario solo responde con el día, debes insistir en que también proporcione la hora exacta antes de continuar. Y no te repitas si ya te dieron el dato"
