@@ -24,6 +24,7 @@ const incidenciaSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Incidencia"
     },
+
     resuelta: {
         type: Boolean,
         required: true

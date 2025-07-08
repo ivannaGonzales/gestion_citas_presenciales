@@ -1,11 +1,16 @@
 
 import path from "path";
 import { fileURLToPath } from 'url';
+import { respuestaChatGPT } from "../cliente/IAClient.js";
+import { GestorFechasCitas } from "../gestor/GestorFechasCitas.js";
+import { GestorMensajes } from "../gestor/GestorMensaje.js";
 import Incidencia from "../models/Incidencia.js";
+import { IncidenciaService } from "../services/InicidenciaService.js"; // cambiar por obtenerMotivoCita
+import { MensajeService } from '../services/MensajeService.js';
 import { getTextUser } from '../utilities/util.js';
-import { generarRespuestaChatGPT, llamadaServicio } from '../utilities/util_configuracion_whatsApp.js';
-import { obtenerFechaCita, obtenerFechaCitaInicial } from '../utilities/util_formato_fecha.js';
-import { guardarMensaje, obtenerContenidosMensajes, obtenerMensajes } from '../utilities/util_mensaje.js';
+
+const RESPUESTA_AFIRMATIVA = "Si";
+
 const enviarMensaje = async (req, res) => {
     try {
 
@@ -18,12 +23,11 @@ const enviarMensaje = async (req, res) => {
             });
         }
 
-        const fechaCitaInicial = obtenerFechaCitaInicial();
-        await enviarCitaPresencialWhatsApp(incidenciaAbierta, fechaCitaInicial.fecha, fechaCitaInicial.hora);
-
+        const fechaCitaInicial = await GestorFechasCitas.obtenerFechaCitaInicial();
+        await GestorMensajes.enviarCitaPresencial(incidenciaAbierta, fechaCitaInicial)
         return res.status(200).json({
             success: true,
-            message: 'Mensaje enviado exitosamente pues mira tu'
+            message: 'Mensaje enviado exitosamente'
         });
 
     } catch (error) {
@@ -72,45 +76,32 @@ const configurarTokenWhatsApp = async (req, res) => {
 
 
 const receiveMessage = async (req, res) => {
-
     try {
         const body = req.body;
-        const respuesta = await getTextUser(body)
-        const telefono = body.entry[0].changes[0].value.contacts[0].wa_id
-        const usuario = body.entry[0].changes[0].value.contacts[0].profile.name
-        let respuestaChatGPT;
-        let fecha;
+        const respuesta = await getTextUser(body);
+        const { wa_id: telefono, profile: { name: usuario } } = body.entry[0].changes[0].value.contacts[0];
+        const motivo = await IncidenciaService.obtenerMotivoCita(usuario, telefono);
+        let fecha = null;
 
-        const motivo = await Incidencia.findOne({
-            $and: [
-                { nombre: usuario },
-                { numero: telefono }
-            ]
-        }, {
-            _id: 0,
-            motivo: 1
-        })
-        if (respuesta == "Si") {
-            const fechaCitaInicial = obtenerFechaCitaInicial();
-            await enviarConfirmacionCitaWhatsApp(telefono, fechaCitaInicial.fecha, fechaCitaInicial.hora);
+        if (respuesta === RESPUESTA_AFIRMATIVA) {
+            fecha = GestorFechasCitas.obtenerFechaCitaInicial();
+            if (fecha) {
+                await IncidenciaService.actualizarCita(usuario, telefono, fecha);
+                //await enviarConfirmacionCitaWhatsApp(telefono, fecha);
+                await GestorMensajes.enviarConfirmacionCita(telefono, fecha)
+            }
         } else {
-            await guardarMensaje(respuesta, telefono);
-            await obtenerMensajes(telefono);
-            fecha = await obtenerFechaCita(telefono);
-            await Incidencia.findOneAndUpdate(
-                { nombre: usuario, numero: telefono },
-                {
-                    fecha: fecha,
-                    resuelta: true
-                },
-                { new: true }
-            );
-            respuestaChatGPT = await respuestaChatGPTWhatsApp(await obtenerContenidosMensajes(telefono), telefono, motivo.motivo)
+            await MensajeService.guardarMensaje(respuesta, telefono);
+            fecha = await GestorFechasCitas.obtenerFechaCita(respuesta, telefono);
+            console.log('despues de GestorFechasCitas.obtenerFechaCita')
+            if (fecha) {
+                await IncidenciaService.actualizarCita(usuario, telefono, fecha);
+                const mensajes = await MensajeService.obtenerContenidosMensajes(telefono);
+                await respuestaChatGPT(mensajes, telefono, motivo);
+            }
         }
-        return res.status(200).json({
-            success: true,
-            message: 'EVENT_RECEIVED ' || fecha
-        });
+
+        return res.status(200).json({ success: true, message: 'EVENT_RECEIVED' });
 
     } catch (error) {
         return res.status(500).json({
@@ -121,104 +112,12 @@ const receiveMessage = async (req, res) => {
     }
 };
 
-const respuestaChatGPTWhatsApp = async (respuesta, telefono, motivo) => {
 
-
-    const responseChatGPT = await generarRespuestaChatGPT(respuesta, motivo);
-
-    const mensaje = {
-        "messaging_product": "whatsapp",
-        "recipient_type": "individual",
-        "to": telefono,
-        "type": "text",
-        "text": {
-            "preview_url": false,
-            "body": responseChatGPT
-        }
-    }
-    await llamadaServicio(mensaje)
-
-    return responseChatGPT
-}
-const enviarConfirmacionCitaWhatsApp = async (telefono, fecha, hora) => {
-    const mensaje = {
-        "messaging_product": "whatsapp",
-        "to": telefono,
-        "type": "template",
-        "template": {
-            "name": "cita_presencial_registrada",
-            "language": {
-                "code": "es"
-            },
-            "components": [
-                {
-                    "type": "body",
-                    "parameters": [
-                        {
-                            "parameter_name": "fecha",
-                            "type": "text",
-                            "text": fecha
-                        },
-                        {
-                            "parameter_name": "hora",
-                            "type": "text",
-                            "text": hora
-                        }
-                    ]
-                }
-            ]
-        }
-    }
-
-    await llamadaServicio(mensaje)
-}
-const enviarCitaPresencialWhatsApp = async (incidencia, fecha, hora) => {
-
-    const mensaje = {
-        "messaging_product": "whatsapp",
-        "to": incidencia.numero,//aqui hay que tener cuidado porque le estoy pasando un número fijo 
-        "type": "template",
-        "template": {
-            "name": "gestion_citas_presenciales",
-            "language": {
-                "code": "es"
-            },
-            "components": [
-                {
-                    "type": "body",
-                    "parameters": [
-                        {
-                            "parameter_name": "nombre",
-                            "type": "text",
-                            "text": incidencia.nombre
-                        },
-                        {
-                            "parameter_name": "motivo",
-                            "type": "text",
-                            "text": incidencia.motivo
-                        },
-                        {
-                            "parameter_name": "fecha",
-                            "type": "text",
-                            "text": fecha
-                        },
-                        {
-                            "parameter_name": "hora",
-                            "type": "text",
-                            "text": hora
-                        }
-                    ]
-                }
-            ]
-        }
-    }
-    await llamadaServicio(mensaje)
-}
 
 const politicas = async (req, res) => {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     res.sendFile(path.join(__dirname, '..', 'public', 'politicas.html'));
 }
-export { configurarTokenWhatsApp, enviarCitaPresencialWhatsApp, enviarConfirmacionCitaWhatsApp, enviarMensaje, politicas, receiveMessage };
+export { configurarTokenWhatsApp, enviarMensaje, politicas, receiveMessage };
 

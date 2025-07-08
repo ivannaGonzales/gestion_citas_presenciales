@@ -1,28 +1,23 @@
-import axios from 'axios';
-import { config } from 'dotenv';
-import OpenAI from 'openai';
-config();
+
+import { llamadaServicio } from "./FacebookClient.js";
+const respuestaChatGPT = async (respuesta, telefono, motivo) => {
 
 
-const llamadaServicio = async (mensaje) => {
+    const responseChatGPT = await generarRespuestaChatGPT(respuesta, motivo);
 
-    try {
-        const token = process.env.TOKEN_WHATSAPP
-        const api_url = "https://graph.facebook.com/v21.0/564314080092964/messages"
-        const headers = {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
+    const mensaje = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": telefono,
+        "type": "text",
+        "text": {
+            "preview_url": false,
+            "body": responseChatGPT
         }
-        await axios.post(api_url, mensaje, { headers });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: 'Error al llamar al servicio de whatsApp',
-            error: error.message
-        });
     }
+    await llamadaServicio(mensaje)
 
+    return responseChatGPT;
 }
 
 const generarRespuestaChatGPT = async (respuesta, motivo) => {
@@ -60,8 +55,4 @@ const generarRespuestaChatGPT = async (respuesta, motivo) => {
 }
 
 
-
-export {
-    generarRespuestaChatGPT, llamadaServicio
-};
-
+export { respuestaChatGPT };

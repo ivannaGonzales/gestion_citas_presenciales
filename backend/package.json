@@ -5,7 +5,7 @@
   "description": "Aprendiendo ",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
@@ -30,6 +30,7 @@
     "sugar-date": "^2.0.6"
   },
   "devDependencies": {
+    "jest": "^30.0.3",
     "nodemon": "^3.1.4"
   }
 }
