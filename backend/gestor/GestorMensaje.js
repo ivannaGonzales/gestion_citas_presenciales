@@ -5,8 +5,11 @@ import { llamadaServicio } from "../cliente/FacebookClient.js";
 
 class GestorMensajes {
 
+    constructor() {
 
-    static formatearFecha(fecha) {
+    }
+
+    formatearFecha(fecha) {
         const f = moment(fecha);
         return {
             fechaFormat: f.format("YYYY-MM-DD"),
@@ -14,7 +17,7 @@ class GestorMensajes {
         };
     }
 
-    static async enviarConfirmacionCita(telefono, fecha) {
+    async enviarConfirmacionCita(telefono, fecha) {
         const { fecha: f, hora: h } = this.formatearFecha(fecha);
 
         const mensaje = {
@@ -50,7 +53,7 @@ class GestorMensajes {
 
     }
 
-    static async enviarCitaPresencial(incidencia, fecha) {
+    async enviarCitaPresencial(incidencia, fecha) {
         const { fechaFormat: fechaFormat, horaFormat: horaFormat } = this.formatearFecha(fecha);
         const mensaje = {
             "messaging_product": "whatsapp",

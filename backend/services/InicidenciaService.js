@@ -1,15 +1,21 @@
 import moment from "moment-timezone";
+import { Constantes } from '../constantes/Constantes.js';
 import Incidencia from "../models/Incidencia.js";
 class IncidenciaService {
 
-    static async actualizarCita(usuario, telefono, fechaCitaInicial) {
+    constructor() {
+
+    }
+
+    async actualizarCita(usuario, telefono, fechaCitaInicial) {
         await Incidencia.findOneAndUpdate(
-            { usuario, telefono },
-            { $set: { fechaCitaInicial, resuelta: true } }
+            { nombre: usuario, numero: telefono },
+            { $set: { fecha: fechaCitaInicial, resuelta: true } },
+            { new: true } // Devuelve el documento actualizado
         );
     }
 
-    static async obtenerMotivoCita(nombre, numero) {
+    async obtenerMotivoCita(nombre, numero) {
         const resultado = await Incidencia.findOne(
             { nombre, numero },
             { _id: 0, motivo: 1 }
@@ -17,13 +23,17 @@ class IncidenciaService {
         return resultado?.motivo || null;
     }
 
-    static async buscarPorFechaSugerida(fechaSugerida) {
+    async buscarPorFechaSugerida(fechaSugerida) {
         return await Incidencia.findOne({
             fecha: {
                 $gte: fechaSugerida.toDate(),
-                $lt: moment(fechaSugerida).add(1, "hour").toDate()
+                $lt: moment(fechaSugerida).add(1, Constantes.HOUR).toDate()
             }
         });
+    }
+
+    async obtenerIncidencia() {
+        return await Incidencia.findOne({ resuelta: false });
     }
 }
 

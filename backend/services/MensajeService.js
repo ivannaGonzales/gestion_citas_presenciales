@@ -1,16 +1,28 @@
+import { Constantes } from '../constantes/Constantes.js';
 import Incidencia from "../models/Incidencia.js";
 import Mensaje from "../models/Mensaje.js";
-
-const PALABRA_NEGATIVA = "no";
 
 
 class MensajeService {
 
-    static async buscarPorContenidoYTelefono(contenido, telefono) {
-        return await Mensaje.findOne({ contenido, telefono });
+    constructor() {
+
     }
 
-    static async guardarMensaje(respuesta, telefono) {
+    async buscarPorContenidoYTelefono(contenido, telefono) {
+        let mensaje = null;
+        if (contenido.toLowerCase() !== Constantes.PALABRA_NEGATIVA) {
+            try {
+                mensaje = await Mensaje.findOne({ contenido, telefono });
+            } catch (error) {
+                throw new Error("No se encontró ningún mensaje con ese contenido y teléfono.");
+            }
+
+        }
+        return mensaje
+    }
+
+    async guardarMensaje(respuesta, telefono) {
         const incidencia = await Incidencia.findOne({ numero: telefono }).select("_id"); // Solo devuelve el ID
         const idIncidencia = incidencia ? incidencia._id : null; // Guarda el ID en una variable
         const duplicado = await Mensaje.findOne({ telefono, contenido: respuesta });
@@ -19,7 +31,7 @@ class MensajeService {
             return;
         }
 
-        if (respuesta.toLowerCase() !== PALABRA_NEGATIVA) {
+        if (respuesta.toLowerCase() !== Constantes.PALABRA_NEGATIVA) {
             const nuevoMensaje = new Mensaje({
                 telefono: telefono,
                 contenido: respuesta,
@@ -30,15 +42,21 @@ class MensajeService {
 
     }
 
-    static async obtenerMensajeById(id) {
-        const mensaje = await Mensaje.findOne(id).select("contenido");
+    async obtenerMensajeById(id) {
+        const mensaje = await Mensaje.findOne(id).select(Constantes.CONTENIDO);
         return mensaje?.contenido;
     }
 
-    static async obtenerMensajes(telefono) {
+    async obtenerMensajes(telefono) {
         let mensajes = null;
         try {
             mensajes = await Mensaje.find({ telefono })
+                .populate(Constantes.FECHA_PARSEADA)
+                .sort({ createdAt: 1 });
+
+            mensajes = mensajes.filter(
+                m => m.contenido.trim().toLowerCase() !== Constantes.PALABRA_NEGATIVA
+            );
         }
         catch (error) {
             mensajes = null;
@@ -47,9 +65,9 @@ class MensajeService {
 
     }
 
-    static async obtenerContenidosMensajes(telefono) {
+    async obtenerContenidosMensajes(telefono) {
         try {
-            const mensajes = await Mensaje.find({ telefono }).select("contenido"); // Solo obtiene el contenido
+            const mensajes = await Mensaje.find({ telefono }).select(Constantes.CONTENIDO); // Solo obtiene el contenido
             const contenidos = mensajes.map(mensaje => mensaje.contenido); // Extrae solo los valores
             const oracion = contenidos.join(" "); // Une todos los mensajes en una sola oración
             return oracion;

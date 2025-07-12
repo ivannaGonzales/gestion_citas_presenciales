@@ -2,29 +2,26 @@
 import path from "path";
 import { fileURLToPath } from 'url';
 import { respuestaChatGPT } from "../cliente/IAClient.js";
+import { Constantes } from '../constantes/Constantes.js';
 import { GestorFechasCitas } from "../gestor/GestorFechasCitas.js";
 import { GestorMensajes } from "../gestor/GestorMensaje.js";
-import Incidencia from "../models/Incidencia.js";
 import { IncidenciaService } from "../services/InicidenciaService.js"; // cambiar por obtenerMotivoCita
 import { MensajeService } from '../services/MensajeService.js';
 import { getTextUser } from '../utilities/util.js';
 
-const RESPUESTA_AFIRMATIVA = "Si";
+
+const gestorFechasCitas = new GestorFechasCitas();
+const mensajeService = new MensajeService();
+const incidenciaService = new IncidenciaService();
+const gestorMensajes = new GestorMensajes();
+
 
 const enviarMensaje = async (req, res) => {
     try {
 
-        const incidenciaAbierta = await Incidencia.findOne({ resuelta: false });
-        // Verificar si existe la incidencia
-        if (!incidenciaAbierta) {
-            return res.status(404).json({
-                success: false,
-                message: 'No se encontró ninguna incidencia abierta'
-            });
-        }
-
-        const fechaCitaInicial = await GestorFechasCitas.obtenerFechaCitaInicial();
-        await GestorMensajes.enviarCitaPresencial(incidenciaAbierta, fechaCitaInicial)
+        const incidenciaAbierta = await incidenciaService.obtenerIncidencia();
+        const fechaCitaInicial = await gestorFechasCitas.obtenerFechaCitaInicial();
+        await gestorMensajes.enviarCitaPresencial(incidenciaAbierta, fechaCitaInicial)
         return res.status(200).json({
             success: true,
             message: 'Mensaje enviado exitosamente'
@@ -80,23 +77,20 @@ const receiveMessage = async (req, res) => {
         const body = req.body;
         const respuesta = await getTextUser(body);
         const { wa_id: telefono, profile: { name: usuario } } = body.entry[0].changes[0].value.contacts[0];
-        const motivo = await IncidenciaService.obtenerMotivoCita(usuario, telefono);
+        const motivo = await incidenciaService.obtenerMotivoCita(usuario, telefono);
         let fecha = null;
-
-        if (respuesta === RESPUESTA_AFIRMATIVA) {
-            fecha = GestorFechasCitas.obtenerFechaCitaInicial();
+        if (respuesta === Constantes.RESPUESTA_AFIRMATIVA) {
+            fecha = gestorFechasCitas.obtenerFechaCitaInicial();
             if (fecha) {
-                await IncidenciaService.actualizarCita(usuario, telefono, fecha);
-                //await enviarConfirmacionCitaWhatsApp(telefono, fecha);
-                await GestorMensajes.enviarConfirmacionCita(telefono, fecha)
+                await incidenciaService.actualizarCita(usuario, telefono, fecha);
+                await gestorMensajes.enviarConfirmacionCita(telefono, fecha)
             }
         } else {
-            await MensajeService.guardarMensaje(respuesta, telefono);
-            fecha = await GestorFechasCitas.obtenerFechaCita(respuesta, telefono);
-            console.log('despues de GestorFechasCitas.obtenerFechaCita')
+            await mensajeService.guardarMensaje(respuesta, telefono);
+            fecha = await gestorFechasCitas.obtenerFechaCita(respuesta, telefono);
             if (fecha) {
-                await IncidenciaService.actualizarCita(usuario, telefono, fecha);
-                const mensajes = await MensajeService.obtenerContenidosMensajes(telefono);
+                await incidenciaService.actualizarCita(usuario, telefono, fecha);
+                const mensajes = await mensajeService.obtenerContenidosMensajes(telefono);
                 await respuestaChatGPT(mensajes, telefono, motivo);
             }
         }
@@ -120,4 +114,3 @@ const politicas = async (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'politicas.html'));
 }
 export { configurarTokenWhatsApp, enviarMensaje, politicas, receiveMessage };
-
