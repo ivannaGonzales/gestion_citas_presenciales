@@ -5,16 +5,34 @@ import { FechaParseadaService } from "../services/FechaParseadaService.js";
 import { IncidenciaService } from "../services/InicidenciaService.js";
 import { MensajeService } from "../services/MensajeService.js";
 
-class GestorFechasCitas {
+/**
+ * Clase que se encarga de gestionar citas presenciales
+ */
+class GestorFechas {
 
+    /**
+     * Constructor de la clase GestorFechasCitas
+     * @constructor
+     */
     constructor() {
+        /** 
+         * Cliente Duckling
+         * @type{ParserClient}
+         */
         this.parserClient = new ParserClient();
+
+        /**
+         * Servicio para el modelo de FechaParseada
+         */
         this.FechaParseadaService = new FechaParseadaService();
     }
 
 
-
-    async obtenerFechaCitaInicial() {
+    /**
+     * Obtiene la proxima fecha disponible
+     * @returns fecha para la cita
+     */
+    async obtenerPrimeraFechaDisponible() {
         const hoy = moment.utc().startOf(Constantes.DAY); // usamos utc desde el inicio
         const horaInicio = 8;
         const horaFin = 20;
@@ -23,7 +41,7 @@ class GestorFechasCitas {
         //primera fechaSugerida a las 3 de la tarde
         let fechaSugerida = moment(hoy).hour(15).minute(0).second(0).millisecond(0); // objeto moment
         for (let i = 0; i < maxDias; i++) {
-            const existe = await IncidenciaService.buscarPorFechaSugerida(fechaSugerida)
+            const existe = await IncidenciaService.buscarPorFecha(fechaSugerida)
             if (!existe) {
                 return fechaSugerida.utcOffset(0).format(Constantes.FORMATO_FECHA);
             }
@@ -35,10 +53,15 @@ class GestorFechasCitas {
 
         }
 
-        return null;
+        //validación al final del ciclo
+        throw new Error(`No se encontró una fecha disponible después de ${maxDias} días`);
     };
 
-
+    /**
+     * Analiza la respuesta estructurada del cliente de análisis semántico (como Duckling) para extraer una fecha y su granularidad.
+     * @param {Array<Object>}  data Arreglo de objetos devueltos por el cliente de análisis semántico (Duckling).
+     * @returns {fecha, tipo} Fecha en formato ISO 8601 y el tipo {day, hour, minute}
+     */
     async analizarRespuesta(data) {
         // Asegurar que data es un array y tiene al menos dos elementos
         if (data != null) {
@@ -60,13 +83,22 @@ class GestorFechasCitas {
         }
 
     };
-
+    /**
+     * Analiza una respuesta textual del cliente para extraer una fecha utilizando el cliente de procesamiento de lenguaje natural.
+     * @param {String} respuesta del cliente
+     * @returns {String} fecha con formato para guardarlo en bbdd
+     */
     async parsearFecha(respuesta) {
         const data = await this.parserClient.parsearFecha(respuesta);
         return this.analizarRespuesta(data);
 
     };
 
+    /**
+     * Obtiene una fecha completa para una cita a partir de los mensajes previamente enviados por un cliente.
+     * @param {Number} telefono Teléfono del cliente
+     * @returns {Fecha} fecha Fecha en formato ISO8601
+     */
     async obtenerFecha(telefono) {
         //obtengo las fechas si hay mensajes
         const mensajes = (await MensajeService.obtenerMensajes(telefono))
@@ -95,11 +127,15 @@ class GestorFechasCitas {
         else {
             return null;
         }
-
-
     }
 
-    async procesarMensaje(respuesta, telefono) {
+    /**
+     * Analiza el mensaje del cliente que contiene una posible fecha para una cita
+     * @param {String} respuesta 
+     * @param {Number} telefono
+     */
+    async analizarMensaje(respuesta, telefono) {
+        //obtiene el martes 13 
         const mensaje = await MensajeService.buscarPorContenidoYTelefono(respuesta, telefono)
         if (!mensaje) {
             console.log("No se encontró ningún mensaje con esos datos.");
@@ -113,10 +149,16 @@ class GestorFechasCitas {
         await mensaje.save();
     };
 
+    /**
+     * Obtiene la cita propuesta por el cliente
+     * @param {String} respuesta Respuesta del cliente
+     * @param {Number} telefono Teléfono del cliente
+     * @returns Fecha de la cita
+     */
     async obtenerFechaCita(respuesta, telefono) {
         let fecha = null;
         try {
-            await this.procesarMensaje(respuesta, telefono);
+            await this.analizarMensaje(respuesta, telefono);
             fecha = await this.obtenerFecha(telefono);
         } catch (error) {
         }
@@ -124,4 +166,4 @@ class GestorFechasCitas {
     };
 }
 
-export { GestorFechasCitas };
+export { GestorFechas };

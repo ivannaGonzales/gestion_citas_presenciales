@@ -3,12 +3,24 @@ import Incidencia from "../models/Incidencia.js";
 import Mensaje from "../models/Mensaje.js";
 
 
+/**
+ * Servicio para gestionar operaciones relacionadas con mensajes.
+ */
 class MensajeService {
 
+    /**
+     * Constructor de la clase MensajeService
+     * @constructor
+     */
     constructor() {
 
     }
-
+    /**
+     * Obtiene el mensaje por contenido y teléfono
+     * @param {String} contenido 
+     * @param {Number} telefono 
+     * @returns {Mensaje}
+     */
     async buscarPorContenidoYTelefono(contenido, telefono) {
         let mensaje = null;
         if (contenido.toLowerCase() !== Constantes.PALABRA_NEGATIVA) {
@@ -22,6 +34,11 @@ class MensajeService {
         return mensaje
     }
 
+    /**
+     * Guarda el mensaje
+     * @param {String} respuesta Contenido del mensaje
+     * @param {Number} telefono Número de teléfono del cliente
+     */
     async guardarMensaje(respuesta, telefono) {
         const incidencia = await Incidencia.findOne({ numero: telefono }).select("_id"); // Solo devuelve el ID
         const idIncidencia = incidencia ? incidencia._id : null; // Guarda el ID en una variable
@@ -42,11 +59,21 @@ class MensajeService {
 
     }
 
+    /**
+     * Obtiene el mensaje por identificador
+     * @param {String} id Identificador del mensaje
+     * @returns {String} contenido del mensaje 
+     */
     async obtenerMensajeById(id) {
         const mensaje = await Mensaje.findOne(id).select(Constantes.CONTENIDO);
         return mensaje?.contenido;
     }
 
+    /**
+     * Obtiene los mensajes de un teléfono
+     * @param {Number} telefono 
+     * @returns {Mensaje} Mensajes
+     */
     async obtenerMensajes(telefono) {
         let mensajes = null;
         try {
@@ -65,6 +92,12 @@ class MensajeService {
 
     }
 
+    /**
+     * Obtine el contenido del teléfono
+     * 
+     * @param {Number} telefono 
+     * @returns {String} Contenido de los mensajes
+     */
     async obtenerContenidosMensajes(telefono) {
         try {
             const mensajes = await Mensaje.find({ telefono }).select(Constantes.CONTENIDO); // Solo obtiene el contenido

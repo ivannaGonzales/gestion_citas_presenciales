@@ -1,6 +1,13 @@
 import mongoose from "mongoose";
 
-const mensajeSchema = new mongoose.Schema({ // ✅ Usa `new mongoose.Schema({...})`
+/**
+ * Modelo que representa un mensaje enviado por un cliente durante una conversación
+ * telefono: Número del cliente
+ * contenido: Contenido del mensaje
+ * incidencia: Incidencia que esta relacionado con la conversación
+ * fechaParseada: Fecha parseada
+ */
+const mensajeSchema = new mongoose.Schema({
     telefono: {
         type: Number,
         required: true
@@ -15,10 +22,10 @@ const mensajeSchema = new mongoose.Schema({ // ✅ Usa `new mongoose.Schema({...
     },
     fechaParseada: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "FechaParseada" // Relación directa con el modelo de fecha
+        ref: "FechaParseada"
     }
 }, {
-    timestamps: true // ✅ Ahora está dentro del objeto del esquema
+    timestamps: true
 });
 
 const Mensaje = mongoose.model("Mensaje", mensajeSchema);

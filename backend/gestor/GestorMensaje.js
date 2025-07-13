@@ -1,14 +1,31 @@
 
 
 import moment from "moment-timezone";
-import { llamadaServicio } from "../cliente/FacebookClient.js";
-
+import { FacebookClient } from "../cliente/FacebookClient.js";
+/**
+ * Clase que se encarga de gestionar Mensajes
+ * @class
+ */
 class GestorMensajes {
 
+    /**
+     * Constructor de la clase GestorMensajes
+     * @constructor
+     */
     constructor() {
-
+        /**
+         * Cliente de Api de WhatsApp Business
+         * 
+         * @type {FacebookClient}
+         */
+        this.facebookClient = new FacebookClient();
     }
 
+    /**
+     * Formatea una fecha en dos partes: fecha (`YYYY-MM-DD`) y hora (`HH:mm`).
+     * @param {String} fecha Fecha en formato ISO
+     * @returns {{fechaFormat: String, horaFormat: String}} Objeto con la fecha y hora formateadas.
+     */
     formatearFecha(fecha) {
         const f = moment(fecha);
         return {
@@ -17,6 +34,12 @@ class GestorMensajes {
         };
     }
 
+    /**
+     * Envía un mensaje de confirmación de cita al cliente a través de WhatsApp.
+     * Utiliza una plantilla llamada cita_presencial_registrada con los parámetros de fecha y hora.
+     * @param {Number} telefono Número del teléfono del cliente
+     * @param {String} fecha Fecha de la cita presencial
+     */
     async enviarConfirmacionCita(telefono, fecha) {
         const { fecha: f, hora: h } = this.formatearFecha(fecha);
 
@@ -49,10 +72,15 @@ class GestorMensajes {
             }
         }
 
-        await llamadaServicio(mensaje)
+        await this.facebookClient.llamadaServicio(mensaje)
 
     }
 
+    /**
+     * Envía una propuesta de cita presencial al cliente con los datos de la incidencia.
+     * @param {Inicidencia} incidencia Incidencia abierta
+     * @param {String} fecha Fecha propuesta para la gestión de citas presenciales
+     */
     async enviarCitaPresencial(incidencia, fecha) {
         const { fechaFormat: fechaFormat, horaFormat: horaFormat } = this.formatearFecha(fecha);
         const mensaje = {
@@ -93,7 +121,7 @@ class GestorMensajes {
                 ]
             }
         }
-        await llamadaServicio(mensaje)
+        await this.facebookClient.llamadaServicio(mensaje)
     }
 }
 

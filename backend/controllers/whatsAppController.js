@@ -1,27 +1,16 @@
 
 import path from "path";
 import { fileURLToPath } from 'url';
-import { respuestaChatGPT } from "../cliente/IAClient.js";
-import { Constantes } from '../constantes/Constantes.js';
-import { GestorFechasCitas } from "../gestor/GestorFechasCitas.js";
-import { GestorMensajes } from "../gestor/GestorMensaje.js";
-import { IncidenciaService } from "../services/InicidenciaService.js"; // cambiar por obtenerMotivoCita
-import { MensajeService } from '../services/MensajeService.js';
+import { CoordinadorCita } from "../coordinador/CoordinadorCita.js";
 import { getTextUser } from '../utilities/util.js';
-
-
-const gestorFechasCitas = new GestorFechasCitas();
-const mensajeService = new MensajeService();
-const incidenciaService = new IncidenciaService();
-const gestorMensajes = new GestorMensajes();
+const coordinadorCita = new CoordinadorCita();
 
 
 const enviarMensaje = async (req, res) => {
     try {
 
-        const incidenciaAbierta = await incidenciaService.obtenerIncidencia();
-        const fechaCitaInicial = await gestorFechasCitas.obtenerFechaCitaInicial();
-        await gestorMensajes.enviarCitaPresencial(incidenciaAbierta, fechaCitaInicial)
+        coordinadorCita.enviarMensaje();
+
         return res.status(200).json({
             success: true,
             message: 'Mensaje enviado exitosamente'
@@ -30,7 +19,7 @@ const enviarMensaje = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             success: false,
-            message: 'Error interno del servidor',
+            message: 'Error al enviar mensaje',
             error: error.message
         });
     }
@@ -77,23 +66,9 @@ const receiveMessage = async (req, res) => {
         const body = req.body;
         const respuesta = await getTextUser(body);
         const { wa_id: telefono, profile: { name: usuario } } = body.entry[0].changes[0].value.contacts[0];
-        const motivo = await incidenciaService.obtenerMotivoCita(usuario, telefono);
-        let fecha = null;
-        if (respuesta === Constantes.RESPUESTA_AFIRMATIVA) {
-            fecha = gestorFechasCitas.obtenerFechaCitaInicial();
-            if (fecha) {
-                await incidenciaService.actualizarCita(usuario, telefono, fecha);
-                await gestorMensajes.enviarConfirmacionCita(telefono, fecha)
-            }
-        } else {
-            await mensajeService.guardarMensaje(respuesta, telefono);
-            fecha = await gestorFechasCitas.obtenerFechaCita(respuesta, telefono);
-            if (fecha) {
-                await incidenciaService.actualizarCita(usuario, telefono, fecha);
-                const mensajes = await mensajeService.obtenerContenidosMensajes(telefono);
-                await respuestaChatGPT(mensajes, telefono, motivo);
-            }
-        }
+
+        // coordinadorCita(usuario, telefono, respuesta)
+        coordinadorCita.procesarMensaje(usuario, telefono, respuesta);
 
         return res.status(200).json({ success: true, message: 'EVENT_RECEIVED' });
 
