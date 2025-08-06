@@ -21,7 +21,6 @@ const fechasCreadas = [];
 
         // Día de la prueba inicial 
         let baseFecha = moment(hoy).hour(horarioCita);
-        console.log('baseFecha ', baseFecha)
         const horasOcupadas = [0, 1, 3]; // 16:00, 17:00, 19:00 UTC
 
         for (let i = 0; i < horasOcupadas.length; i++) {

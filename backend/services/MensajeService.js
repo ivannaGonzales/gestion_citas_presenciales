@@ -21,11 +21,14 @@ class MensajeService {
      * @param {Number} telefono 
      * @returns {Mensaje}
      */
-    async buscarPorContenidoYTelefono(contenido, telefono) {
+    async obtenerMensaje(contenido, telefono) {
         let mensaje = null;
         if (contenido.toLowerCase() !== Constantes.PALABRA_NEGATIVA) {
             try {
-                mensaje = await Mensaje.findOne({ contenido, telefono });
+                /** mensajes = await Mensaje.find({ telefono })
+                .populate(Constantes.FECHA_PARSEADA)
+                .sort({ createdAt: 1 });*/
+                mensaje = await Mensaje.findOne({ contenido, telefono }).populate(Constantes.FECHA_PARSEADA);
             } catch (error) {
                 throw new Error("No se encontró ningún mensaje con ese contenido y teléfono.");
             }
@@ -58,17 +61,6 @@ class MensajeService {
         }
 
     }
-
-    /**
-     * Obtiene el mensaje por identificador
-     * @param {String} id Identificador del mensaje
-     * @returns {String} contenido del mensaje 
-     */
-    async obtenerMensajeById(id) {
-        const mensaje = await Mensaje.findOne(id).select(Constantes.CONTENIDO);
-        return mensaje?.contenido;
-    }
-
     /**
      * Obtiene los mensajes de un teléfono
      * @param {Number} telefono 
@@ -98,7 +90,7 @@ class MensajeService {
      * @param {Number} telefono 
      * @returns {String} Contenido de los mensajes
      */
-    async obtenerContenidosMensajes(telefono) {
+    async obtenerConversacion(telefono) {
         try {
             const mensajes = await Mensaje.find({ telefono }).select(Constantes.CONTENIDO); // Solo obtiene el contenido
             const contenidos = mensajes.map(mensaje => mensaje.contenido); // Extrae solo los valores

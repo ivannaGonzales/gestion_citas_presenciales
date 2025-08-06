@@ -1,6 +1,8 @@
 
+import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
 import { FacebookClient } from "./FacebookClient.js";
+dotenv.config();
 
 /**
  * Clase que genera la respuesta de IA con rol de gestor de citas
@@ -78,6 +80,7 @@ class IAClient {
                 max_tokens: 150,
                 temperature: 0.5
             });
+
             return response.choices[0].message.content
 
         } catch (error) {

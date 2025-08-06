@@ -28,6 +28,8 @@ class FechaParseadaService {
         });
 
         await nuevaFecha.save();
+
+        return nuevaFecha;
     }
 }
 

@@ -37,13 +37,11 @@ class ParserClient {
         const body = new URLSearchParams();
         body.append(Constantes.TEXT, respuesta);
         body.append(Constantes.LANG, Constantes.IDIOMA);
-
         const response = await axios.post(
             `${this.baseURL}/parse`,
             body.toString(),
             { headers: this.headers }
         );
-
         return response.data;
     }
 }
