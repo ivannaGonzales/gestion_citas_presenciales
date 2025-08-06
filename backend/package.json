@@ -5,25 +5,32 @@
   "description": "Aprendiendo ",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
   "author": "Ivanna",
   "license": "ISC",
   "dependencies": {
+    "@nlpjs/builtin-duckling": "^5.0.0-alpha.5",
     "axios": "^1.7.9",
+    "chrono-node": "^2.8.0",
     "circular-json": "^0.5.9",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
+    "moment-timezone": "^0.5.48",
     "mongodb": "^6.13.0",
     "mongoose": "^8.10.1",
+    "node-nlp": "^5.0.0-alpha.5",
     "nodemailer": "^6.9.14",
     "openai": "^4.86.2",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "sugar-date": "^2.0.6"
   },
   "devDependencies": {
+    "jest": "^30.0.3",
     "nodemon": "^3.1.4"
   }
 }
