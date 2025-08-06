@@ -1,6 +1,14 @@
 import mongoose from "mongoose";
 
 
+/**
+ * Modelo que representa una incidencia 
+ * nombre: Nombre del cliente.
+ * motivo: Motivo de la incidencia.
+ * numero: Número de teléfono del cliente.
+ * fecha: Fecha en la que esté programada la cita creada por la incidencia
+ * resulta: Inicidencia resuelta si la cita ya está programda
+ */
 const incidenciaSchema = mongoose.Schema({
     nombre: {
         type: String,
@@ -24,6 +32,7 @@ const incidenciaSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Incidencia"
     },
+
     resuelta: {
         type: Boolean,
         required: true

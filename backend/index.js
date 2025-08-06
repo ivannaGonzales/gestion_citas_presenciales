@@ -24,7 +24,6 @@ const client = new MongoClient(uri, {
     }
 });
 
-
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -54,7 +53,7 @@ app.use(express.static(
 ));
 
 //conectarDB();
-//
+//sssssssss
 
 const dominiosPermitidos = [process.env.FRONTEND_URL]
 
