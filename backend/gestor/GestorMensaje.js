@@ -29,8 +29,6 @@ class GestorMensajes {
     formatearFecha(fecha) {
         console.log('ayudabte ', fecha)
         const f = moment(fecha);
-        console.log('ratas ', f.format("YYYY-MM-DD"))
-        console.log('sac ', f.format("HH:mm"))
         return {
             fechaFormat: f.format("YYYY-MM-DD"),
             horaFormat: f.format("HH:mm")

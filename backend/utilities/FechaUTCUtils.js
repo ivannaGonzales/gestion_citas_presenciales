@@ -20,7 +20,7 @@ class FechaUTCUtils {
     */
     static obtenerDia(fecha) {
         if (!fecha) return null;
-        return moment.parseZone(fecha).format(Constantes.FORMATO_FECHA);
+        return moment.parseZone(fecha).format(Constantes.FORMATO_DIA);
     }
 
     static obtenerHoraUTC(fecha) {

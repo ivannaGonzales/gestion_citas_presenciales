@@ -72,6 +72,7 @@ class GestorFechas {
             await this.#actualizarMensajeFechaParseada(respuesta, telefono);
             fecha = await this.#obtenerFecha(telefono);
         } catch (error) {
+            console.log('errror ', error)
             throw new Error("No se ha podido obtener una cita presencial dada la conversación con el cliente");
         }
         return fecha;
@@ -101,34 +102,33 @@ class GestorFechas {
     async #obtenerFecha(telefono) {
         //obtengo las fechas si hay mensajes
         const mensajes = (await this.mensajeService.obtenerMensajes(telefono))
-        if (mensajes != null) {
-            for (let i = 0; i < mensajes.length; i++) {
-                const actual = mensajes[i];
-                console.log('actual ', actual)
-                const fechaActual = actual.fechaParseada;
-                // Si es una fecha base tipo 'day' o 'week'
-                if (fechaActual?.tipo === Constantes.DAY) {
-                    console.log('entra por el if')
-                    const baseDate = FechaUTCUtils.obtenerDia(fechaActual.fecha)
 
-                    // Buscar hacia adelante un complemento tipo 'hour' o 'minute'
-                    for (let j = i + 1; j < mensajes.length; j++) {
-                        const siguiente = mensajes[j].fechaParseada;
-                        if (siguiente?.tipo === Constantes.HOUR || siguiente?.tipo === Constantes.MINUTE) {
-                            const hourPart = FechaUTCUtils.obtenerHoraUTC(siguiente.fecha)
-                            return `${baseDate}T${hourPart}`;
-                        }
-                    }
-                } else {
-                    console.log('entra por el else')
-                    //return moment.parseZone(fechaActual.fecha).utcOffset(0, true).format(Constantes.FORMATO_FECHA);
-                    return FechaUTCUtils.normalizarFechaUTC(fechaActual.fecha);
-                }
+        console.log('mensajes ', mensajes)
+        let fechaFinal = null;
+
+        for (let i = 0; i < mensajes.length; i++) {
+
+            const actual = mensajes[i].fechaParseada;
+            console.log('actual ', actual)
+
+            let dia = null;
+            let hora = null;
+
+            if ((actual.tipo) == Constantes.DAY) {
+                dia = FechaUTCUtils.obtenerDia(actual.fecha);
             }
+
+            else {
+                dia = FechaUTCUtils.obtenerDia(actual.fecha);
+                hora = FechaUTCUtils.obtenerHoraUTC(actual.fecha);
+            }
+
+
+            fechaFinal = `${dia}T${hora}`;
+            console.log('fechaFinal ', fechaFinal)
         }
-        else {
-            return null;
-        }
+
+        return fechaFinal;
     }
 
 }
