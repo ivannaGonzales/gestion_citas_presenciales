@@ -1,22 +1,40 @@
 class FechaTipoHelper {
     static #obtenerFechaYTipo(data) {
-        if (!Array.isArray(data) || data.length === 0) {
-            return null;
+        const fechaObj = data.find(d => d.dim === "time");
+        if (!fechaObj) return { tipo: "sin_fecha", value: null };
+
+        const values = fechaObj.value?.values;
+        const valuePrincipal = fechaObj.value?.value || null;
+
+        if (!values || values.length === 0) {
+            return { tipo: "sin_valores", value: valuePrincipal };
         }
 
-        let fecha = null;
-        let tipo = null;
+        const grains = new Set(values.map(v => v.grain));
+        const fechas = values.map(v => {
+            const [fecha, hora] = v.value.split("T");
+            const [año, mes, día] = fecha.split("-");
+            const horaCompleta = hora.split(":").slice(0, 2).join(":"); // HH:MM
+            return {
+                diaMes: `${mes}-${día}`,
+                hora: horaCompleta
+            };
+        });
 
-        for (const item of data) {
-            if (item.value?.values?.length > 0) {
-                const primeraFecha = item.value.values[0];
-                fecha = primeraFecha.value;
-                tipo = primeraFecha.grain;
-                break;
-            }
+        const diasUnicos = new Set(fechas.map(f => f.diaMes));
+        const horasUnicas = new Set(fechas.map(f => f.hora));
+
+        let tipo = "sin_tipo_definido";
+
+        if (grains.size === 1 && grains.has("day")) {
+            tipo = "dia";
+        } else if (diasUnicos.size === 1) {
+            tipo = "fecha_completa";
+        } else if (horasUnicas.size === 1) {
+            tipo = "hora";
         }
 
-        return { fecha, tipo };
+        return { fecha: valuePrincipal, tipo };
     }
 
     static extraerFechaYTipo(data) {

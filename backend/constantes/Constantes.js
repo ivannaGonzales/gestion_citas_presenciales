@@ -6,9 +6,9 @@ export class Constantes {
     static FORMATO_FECHA = "YYYY-MM-DDTHH:mm:ss.SSSZ";
     static FORMATO_DIA = "YYYY-MM-DD";
     static FORMATO_HORA = "HH:mm:ss.SSSZ";
-    static DAY = "day";
-    static HOUR = "hour";
-    static MINUTE = "minute";
+    static DAY = "dia";
+    static HOUR = "hora";
+    static FECHA_COMPLETA = "fecha_completa";
     static RESPUESTA_AFIRMATIVA = "Si";
 
     static TEXT = 'text';

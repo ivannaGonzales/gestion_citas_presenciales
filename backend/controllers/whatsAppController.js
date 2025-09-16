@@ -13,7 +13,7 @@ const enviarMensaje = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Mensaje enviado exitosamente comida griega'
+            message: 'Mensaje enviado exitosamente algoritmo'
         });
 
     } catch (error) {

@@ -37,7 +37,6 @@ class IncidenciaService {
 
             return incidenciaActualizada;
         } catch (error) {
-            console.log('error ', error)
             throw new Error('No se ha podido actualizar incidencia')
         }
 

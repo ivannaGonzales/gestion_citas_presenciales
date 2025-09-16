@@ -37,15 +37,23 @@ class GestorFechas {
      * @returns fecha para la cita
      */
     async buscarFechaDisponible() {
-        const hoy = moment.utc().startOf(Constantes.DAY); // usamos utc desde el inicio
+        const hoy = moment.utc().startOf(Constantes.DAY); // inicio del día en UTC
+        const siguienteHora = moment.utc().add(1, 'hour').startOf('hour'); // siguiente hora redondeada
         const horaInicio = 8;
         const horaFin = 20;
         const maxDias = 30;
 
         //primera fechaSugerida a las 3 de la tarde
-        let fechaSugerida = moment(hoy).hour(15).minute(0).second(0).millisecond(0); // objeto moment
+
+        let fechaSugerida = moment(hoy)
+            .hour(siguienteHora.hour())
+            .minute(0)
+            .second(0)
+            .millisecond(0);
+
+
         for (let i = 0; i < maxDias; i++) {
-            const existe = await this.incidenciaService.buscarPorFecha(fechaSugerida)
+            const existe = await this.incidenciaService.buscarPorFecha(fechaSugerida)//por q incidencia?
             if (!existe) {
                 return fechaSugerida.utcOffset(0).format(Constantes.FORMATO_FECHA);
             }
@@ -72,7 +80,6 @@ class GestorFechas {
             await this.#actualizarMensajeFechaParseada(respuesta, telefono);
             fecha = await this.#obtenerFecha(telefono);
         } catch (error) {
-            console.log('errror ', error)
             throw new Error("No se ha podido obtener una cita presencial dada la conversación con el cliente");
         }
         return fecha;
@@ -102,35 +109,45 @@ class GestorFechas {
     async #obtenerFecha(telefono) {
         //obtengo las fechas si hay mensajes
         const mensajes = (await this.mensajeService.obtenerMensajes(telefono))
-
-        console.log('mensajes ', mensajes)
         let fechaFinal = null;
+
+        let dia = null;
+        let hora = null;
 
         for (let i = 0; i < mensajes.length; i++) {
 
             const actual = mensajes[i].fechaParseada;
-            console.log('actual ', actual)
-
-            let dia = null;
-            let hora = null;
 
             if ((actual.tipo) == Constantes.DAY) {
                 dia = FechaUTCUtils.obtenerDia(actual.fecha);
             }
 
+            else if ((actual.tipo) == Constantes.HOUR) {
+                hora = FechaUTCUtils.obtenerHoraUTC(actual.fecha)
+            }
+
             else {
+                // fecha completa
                 dia = FechaUTCUtils.obtenerDia(actual.fecha);
                 hora = FechaUTCUtils.obtenerHoraUTC(actual.fecha);
             }
-
-
             fechaFinal = `${dia}T${hora}`;
-            console.log('fechaFinal ', fechaFinal)
+            console.log('fechaFinal', fechaFinal);
         }
 
-        return fechaFinal;
-    }
+        if ((dia == null) || (hora == null)) {
+            console.log('la fecha que me devuelve el nulo');
+            return null
+        }
 
+        else
+            return fechaFinal;
+    }
 }
+
+const gestor = new GestorFechas();
+
+gestor.buscarFechaDisponible();
+
 
 export { GestorFechas };
