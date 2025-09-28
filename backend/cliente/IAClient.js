@@ -28,7 +28,6 @@ class IAClient {
      * @returns {String} Respuesta generada por IA
      */
     async respuestaChatGPT(mensajes, telefono, motivo) {
-
         const responseChatGPT = await this.generarRespuestaChatGPT(mensajes, motivo)
         const mensaje = {
             "messaging_product": "whatsapp",
@@ -60,15 +59,15 @@ class IAClient {
                 apiKey: apikey
             });
 
-            /*const prompt_inicial = (
-                "Eres un gestor de citas presenciales. Tu tarea es preguntar al usuario por un día y una hora para la cita. Si el usuario solo responde con el día, debes insistir en que también proporcione la hora exacta antes de continuar. Y no te repitas si ya te dieron el dato"
-            )*/
+
             const prompt_inicial = `
                 Eres un gestor de citas presenciales. Tu tarea es:
                 1. Preguntar al usuario por un día y una hora para la cita
                 2. Si el usuario solo responde con el día, debes insistir en que también proporcione la hora exacta antes de continuar
                 3. No te repitas si ya te dieron el dato
                 4. Este es un ${motivo} y debes adaptar tu respuesta específicamente para este tipo de cita
+                5. Si el usuario corrige el día pero no menciona la hora, asume que la hora anterior sigue siendo válida
+
             `;
 
             var response = await openai.chat.completions.create({
@@ -80,7 +79,6 @@ class IAClient {
                 max_tokens: 150,
                 temperature: 0.5
             });
-
             return response.choices[0].message.content
 
         } catch (error) {

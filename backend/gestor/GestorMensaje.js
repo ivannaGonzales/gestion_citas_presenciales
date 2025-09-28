@@ -27,10 +27,7 @@ class GestorMensajes {
      * @returns {{fechaFormat: String, horaFormat: String}} Objeto con la fecha y hora formateadas.
      */
     formatearFecha(fecha) {
-        console.log('ayudabte ', fecha)
         const f = moment(fecha);
-        console.log('ratas ', f.format("YYYY-MM-DD"))
-        console.log('sac ', f.format("HH:mm"))
         return {
             fechaFormat: f.format("YYYY-MM-DD"),
             horaFormat: f.format("HH:mm")
@@ -44,7 +41,6 @@ class GestorMensajes {
      * @param {String} fecha Fecha de la cita presencial
      */
     async enviarConfirmacionCita(telefono, fecha) {
-        console.log('fecha gripe ', fecha)
         const { fechaFormat: fechaFormat, horaFormat: horaFormat } = this.formatearFecha(fecha);
 
         const mensaje = {

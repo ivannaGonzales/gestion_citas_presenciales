@@ -25,7 +25,6 @@ class IncidenciaService {
      */
     async actualizarCita(usuario, telefono, fechaCitaInicial) {
         try {
-            console.log('fechaCitaInicial ', fechaCitaInicial)
             const incidenciaActualizada = await Incidencia.findOneAndUpdate(
                 { nombre: usuario, numero: telefono },
                 { $set: { fecha: fechaCitaInicial, resuelta: true } },
@@ -38,7 +37,6 @@ class IncidenciaService {
 
             return incidenciaActualizada;
         } catch (error) {
-            console.log('error ', error)
             throw new Error('No se ha podido actualizar incidencia')
         }
 
