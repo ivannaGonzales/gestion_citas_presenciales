@@ -13,7 +13,7 @@ const fechaParseadaSchema = new mongoose.Schema({
     },
     tipo: {
         type: String,
-        enum: ["day", "week", "hour", "minute"],
+        enum: ["dia", "hora", "fecha_completa"],
         required: true
     }
 }, { timestamps: true });

@@ -20,7 +20,7 @@ class FechaUTCUtils {
     */
     static obtenerDia(fecha) {
         if (!fecha) return null;
-        return moment.parseZone(fecha).format(Constantes.FORMATO_FECHA);
+        return moment.parseZone(fecha).format(Constantes.FORMATO_DIA);
     }
 
     static obtenerHoraUTC(fecha) {
@@ -28,6 +28,6 @@ class FechaUTCUtils {
         return moment.parseZone(fecha).utcOffset(0, true).format(Constantes.FORMATO_HORA);
     }
 }
-
+// es el hombre mas listo del mundo y ahora a usar vuestro regalo
 
 export { FechaUTCUtils };

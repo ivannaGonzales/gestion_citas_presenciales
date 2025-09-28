@@ -76,11 +76,9 @@ class CoordinadorCita {
             fecha = await this.gestorFechas.fechaCitaConversacion(respuesta, telefono);
             //IAClient
             const mensajes = await this.mensajeService.obtenerConversacion(telefono);
-            console.log('mensajes ', mensajes)
             this.iaClient.respuestaChatGPT(mensajes, telefono, motivo);
             if (fecha) {
                 await this.incidenciaService.actualizarCita(usuario, telefono, fecha);
-
             }
         }
     }
