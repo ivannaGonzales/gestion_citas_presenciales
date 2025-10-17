@@ -2,6 +2,8 @@
 
 import moment from "moment-timezone";
 import { FacebookClient } from "../cliente/FacebookClient.js";
+import Usuario from "../models/Usuario.js";
+
 /**
  * Clase que se encarga de gestionar Mensajes
  * @class
@@ -83,9 +85,10 @@ class GestorMensajes {
      */
     async enviarCitaPresencial(incidencia, fecha) {
         const { fechaFormat: fechaFormat, horaFormat: horaFormat } = this.formatearFecha(fecha);
+        const usuario = await Usuario.findById(incidencia.usuario);
         const mensaje = {
             "messaging_product": "whatsapp",
-            "to": incidencia.numero,//aqui hay que tener cuidado porque le estoy pasando un número fijo 
+            "to": usuario.telefono,//aqui hay que tener cuidado porque le estoy pasando un número fijo 
             "type": "template",
             "template": {
                 "name": "gestion_citas_presenciales",
@@ -99,7 +102,7 @@ class GestorMensajes {
                             {
                                 "parameter_name": "nombre",
                                 "type": "text",
-                                "text": incidencia.nombre
+                                "text": usuario.nombre
                             },
                             {
                                 "parameter_name": "motivo",

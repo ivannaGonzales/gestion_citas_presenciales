@@ -10,19 +10,14 @@ import mongoose from "mongoose";
  * resulta: Inicidencia resuelta si la cita ya está programda
  */
 const incidenciaSchema = mongoose.Schema({
-    nombre: {
-        type: String,
-        required: true
+    usuario: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Usuario"
     },
     motivo: {
         type: String,
         required: true
     },
-    numero: {
-        type: Number,
-        required: true
-    },
-
     fecha: {
         type: Date,
         required: false,
@@ -36,6 +31,10 @@ const incidenciaSchema = mongoose.Schema({
     resuelta: {
         type: Boolean,
         required: true
+    },
+    empresa: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Empresa"
     }
 }, {
     timestamps: true,

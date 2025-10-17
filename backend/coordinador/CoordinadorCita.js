@@ -60,10 +60,10 @@ class CoordinadorCita {
      * @param {Number} telefono Número del cliente
      * @param {String} respuesta Respuesta del cliente
      */
-    async procesarMensaje(usuario, telefono, respuesta) {
+    async procesarMensaje(telefono, respuesta) {
         //obtenerMotivoCita(nombre, numero)
         //aqui lanza error si no encuentra motivo
-        const motivo = this.incidenciaService.obtenerMotivo(usuario, telefono);
+        const motivo = this.incidenciaService.obtenerMotivo(telefono);
         let fecha = null;
         if (respuesta === Constantes.RESPUESTA_AFIRMATIVA) {
             fecha = await this.gestorFechas.buscarFechaDisponible();

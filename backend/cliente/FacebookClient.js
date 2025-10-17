@@ -40,7 +40,6 @@ class FacebookClient {
     async llamadaServicio(mensaje) {
         try {
             await axios.post(FacebookClient.#api_url, mensaje, { headers: FacebookClient.#headers });
-
         } catch (error) {
             throw new Error('Error al llamar al servicio de whatsApp');
         }

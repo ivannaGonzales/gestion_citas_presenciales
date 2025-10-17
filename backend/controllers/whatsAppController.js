@@ -8,7 +8,6 @@ const coordinadorCita = new CoordinadorCita();
 
 const enviarMensaje = async (req, res) => {
     try {
-
         coordinadorCita.enviarMensaje();
 
         return res.status(200).json({
@@ -65,10 +64,11 @@ const receiveMessage = async (req, res) => {
     try {
         const body = req.body;
         const respuesta = await getTextUser(body);
-        const { wa_id: telefono, profile: { name: usuario } } = body.entry[0].changes[0].value.contacts[0];
-
+        //const { wa_id: telefono, profile: { name: usuario } } = body.entry[0].changes[0].value.contacts[0];
+        //creo que el usuario no es necesario
         // coordinadorCita(usuario, telefono, respuesta)
-        coordinadorCita.procesarMensaje(usuario, telefono, respuesta);
+        const { wa_id: telefono } = body.entry[0].changes[0].value.contacts[0];
+        coordinadorCita.procesarMensaje(telefono, respuesta);
 
         return res.status(200).json({ success: true, message: 'EVENT_RECEIVED' });
 
