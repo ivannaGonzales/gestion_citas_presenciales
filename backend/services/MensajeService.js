@@ -43,7 +43,8 @@ class MensajeService {
      * @param {Number} telefono Número de teléfono del cliente
      */
     async guardarMensaje(respuesta, telefono) {
-        const incidencia = await Incidencia.findOne({ numero: telefono }).select("_id"); // Solo devuelve el ID
+        const usuario = await Usuario.findOne({ telefono });
+        const incidencia = await Incidencia.findOne({ usuario: usuario._id }).select("_id");
         const idIncidencia = incidencia ? incidencia._id : null; // Guarda el ID en una variable
         const duplicado = await Mensaje.findOne({ telefono, contenido: respuesta });
         if (duplicado) {
