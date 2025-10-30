@@ -28,6 +28,12 @@ const incidenciaSchema = mongoose.Schema({
         ref: "Incidencia"
     },
 
+    asignadoA: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Empleado", // referencia al técnico o empleado asignado
+        default: null
+    },
+
     resuelta: {
         type: Boolean,
         required: true

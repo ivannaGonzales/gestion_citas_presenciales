@@ -10,6 +10,12 @@ const empleadoSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Empresa",
         required: true
+    },
+    rol: {
+        type: String,
+        enum: ["empleado", "tecnico", "coordinador", "admin"],
+        default: "empleado",
+        required: true
     }
 }, {
     timestamps: true
