@@ -48,13 +48,16 @@ class IncidenciaService {
      * @param {*} telefono Número de teléfono del cliente
      * @returns {String} Devuelve el motivo de la incidencia
      */
-    async obtenerMotivo(usuario, telefono) {// cambiar nombre
+    async obtenerMotivo(telefono) {// cambiar nombre
         let resultado = null;
         try {
             resultado = await Incidencia.findOne(
-                { usuario, telefono },
+                { resuelta: false },
                 { _id: 0, motivo: 1 }
-            );
+            ).populate({
+                path: 'usuario',
+                select: 'telefono' // solo trae el campo teléfono del usuario
+            });
         } catch (error) {
             throw new Error('No se pudo encontrar el motivo de la cita ', telefono);
         }
