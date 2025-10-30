@@ -132,11 +132,9 @@ class GestorFechas {
                 hora = FechaUTCUtils.obtenerHoraUTC(actual.fecha);
             }
             fechaFinal = `${dia}T${hora}`;
-            console.log('fechaFinal', fechaFinal);
         }
 
         if ((dia == null) || (hora == null)) {
-            console.log('la fecha que me devuelve el nulo');
             return null
         }
 
