@@ -1,151 +1,191 @@
-import moment from "moment-timezone";
-import { ParserClient } from "../cliente/ParserClient.js";
-import { Constantes } from '../constantes/Constantes.js';
-import { FechaTipoHelper } from "../helpers/FechaTipoHelper.js";
-import { FechaParseadaService } from "../services/FechaParseadaService.js";
-import { IncidenciaService } from "../services/InicidenciaService.js";
-import { MensajeService } from "../services/MensajeService.js";
-import { FechaUTCUtils } from "../utilities/FechaUTCUtils.js";
+import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone.js";
+import utc from "dayjs/plugin/utc.js";
+import { Constantes } from "../constantes/Constantes.js";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+const CONFIG_CITA = {
+    HORA_INICIO: 8,
+    HORA_FIN: 20,
+    MAX_DIAS: 30
+};
+
 /**
- * Clase que se encarga de gestionar citas presenciales
+ * Servicio encargado de gestionar y resolver fechas disponibles para citas presenciales.
  */
 class GestorFechas {
-
     /**
-     * Constructor de la clase GestorFechasCitas
-     * @constructor
+     * Crea un gestor de fechas.
+     * @param {Object} params Dependencias del gestor.
      */
-    constructor() {
-        /** 
-         * Cliente Duckling
-         * @type{ParserClient}
-         */
-        this.parserClient = new ParserClient();
-
-        /**
-         * Servicio para el modelo de FechaParseada
-         */
-        this.fechaParseadaService = new FechaParseadaService();
-
-        this.incidenciaService = new IncidenciaService();
-        this.mensajeService = new MensajeService();
+    constructor({ mensajeService }) {
+        this.mensajeService = mensajeService;
     }
 
 
     /**
-     * Obtiene la proxima fecha disponible
-     * @returns fecha para la cita
+     * Resuelve una fecha en función del tipo de mensaje y la respuesta del usuario
+     * Si el mensaje es un botón afirmativo, se busca directamente una fecha disponible
+     * Si es texto, se intenta reconstruir la fecha a partir de la conversación previa.
+     * @param {Object} params Parámetros de la conversación.
+     * @param {string} params.incidenciaId Identificador de la incidencia.
+     * @param {string} params.respuesta Texto enviado por el usuario.
+     * @param {string} params.tipoMensaje Tipo de mensaje recibido.
+     * @param {Function} params.esFechaOcupada Función para verificar disponibilidad.
+     * @returns {Promise<string|null>} Fecha formateada o null si no se pudo resolver.
      */
-    async buscarFechaDisponible() {
-        const hoy = moment.utc().startOf(Constantes.DAY); // inicio del día en UTC
-        const siguienteHora = moment.utc().add(1, 'hour').startOf('hour'); // siguiente hora redondeada
-        const horaInicio = 8;
-        const horaFin = 20;
-        const maxDias = 30;
+    async resolverFechaConversacional({ incidenciaId, respuesta, tipoMensaje = "text", esFechaOcupada }) {
+        const respuestaNormalizada = respuesta?.trim().toLowerCase();
+        const esAfirmativa = respuestaNormalizada === Constantes.RESPUESTA_AFIRMATIVA.toLowerCase();
+        if (tipoMensaje === Constantes.TIPO_MENSAJE_BUTTON && esAfirmativa) {
+            return this.buscarFechaDisponible(esFechaOcupada);//busca la primera fecha dentro del rango permitido claro porque tu ya le enviaste una fecha 
+        }
 
-        //primera fechaSugerida a las 3 de la tarde
+        return this.#reconstruirFechaDesdeConversacion(incidenciaId);
+    }
 
-        let fechaSugerida = moment(hoy)
-            .hour(siguienteHora.hour())
+    /**
+     * Busca la primera fecha disponible dentro del rango permitido.
+     * @param {Function} esFechaOcupada Función que indica si una fecha está ocupada por otra incidencia registrada.
+     * @returns {Promise<string|null>} Fecha disponible formateada o null si no se encontró.
+     */
+    async buscarFechaDisponible(esFechaOcupada) {
+        const fechaLimite = dayjs.utc().add(CONFIG_CITA.MAX_DIAS, Constantes.DAY);
+        let fechaSugerida = dayjs.utc().add(1, Constantes.HOUR).startOf(Constantes.HOUR);
+        let fechaEncontrada = null;
+
+        while (fechaSugerida.isBefore(fechaLimite) && !fechaEncontrada) {
+            const fechaPermitida = this.#ajustarAlHorarioPermitido(fechaSugerida);
+
+            if (fechaPermitida) {
+                const existe = esFechaOcupada ? await esFechaOcupada(fechaPermitida.toDate()) : false;
+
+                if (!existe) {
+                    fechaEncontrada = fechaPermitida.format(Constantes.FORMATO_FECHA);
+                } else {
+                    fechaSugerida = fechaPermitida.add(1, Constantes.HOUR);
+                }
+            } else {
+                fechaSugerida = fechaSugerida.add(1, Constantes.HOUR);
+            }
+        }
+
+        return fechaEncontrada;
+    }
+
+    /**
+     * Verifica si una fecha está disponible.
+     * @param {Date|string} fecha Fecha a validar.
+     * @param {Function} esFechaOcupada Función que indica si la fecha está ocupada.
+     * @returns {Promise<boolean>} `true` si está disponible, `false` si está ocupada.
+     */
+    async estaFechaDisponible(fecha, esFechaOcupada) {
+        const existe = esFechaOcupada ? await esFechaOcupada(fecha) : false;
+        return !existe;
+    }
+
+    /**
+     * Ajusta la fecha sugerida al horario permitido.
+     * @param {dayjs.Dayjs} fechaSugerida Fecha candidata.
+     * @returns {dayjs.Dayjs} Fecha ajustada.
+     */
+    /*#ajustarAlHorarioPermitido(fechaSugerida) {
+        if (fechaSugerida.hour() < CONFIG_CITA.HORA_INICIO) {
+            return fechaSugerida.hour(CONFIG_CITA.HORA_INICIO);
+        }
+
+        if (fechaSugerida.hour() >= CONFIG_CITA.HORA_FIN) {
+            return fechaSugerida.add(1, "day").hour(CONFIG_CITA.HORA_INICIO);
+        }
+
+        return fechaSugerida;
+    }*/
+
+    /**
+    * Ajusta la fecha sugerida al horario permitido.
+    * @param {dayjs.Dayjs} fechaSugerida Fecha candidata.
+    * @returns {dayjs.Dayjs} Fecha ajustada.
+    */
+    #ajustarAlHorarioPermitido(fechaSugerida) {
+        let fechaPermitida = fechaSugerida;
+
+        if (this.#esFinDeSemana(fechaPermitida)) {
+            return this.#moverAlSiguienteDiaLaborable(fechaPermitida);
+        }
+
+        if (fechaPermitida.hour() < CONFIG_CITA.HORA_INICIO) {
+            return fechaPermitida
+                .hour(CONFIG_CITA.HORA_INICIO)
+                .minute(0)
+                .second(0)
+                .millisecond(0);
+        }
+
+        if (fechaPermitida.hour() >= CONFIG_CITA.HORA_FIN) {
+            return this.#moverAlSiguienteDiaLaborable(
+                fechaPermitida.add(1, Constantes.DAY)
+            );
+        }
+
+        return fechaPermitida;
+    }
+
+    #esFinDeSemana(fecha) {
+        return fecha.day() === Constantes.DIA_DOMINGO || fecha.day() === Constantes.DIA_SABADO;
+    }
+
+    #moverAlSiguienteDiaLaborable(fecha) {
+        let fechaLaborable = fecha
+            .hour(CONFIG_CITA.HORA_INICIO)
             .minute(0)
             .second(0)
             .millisecond(0);
 
-
-        for (let i = 0; i < maxDias; i++) {
-            const existe = await this.incidenciaService.buscarPorFecha(fechaSugerida)//por q incidencia?
-            if (!existe) {
-                return fechaSugerida.utcOffset(0).format(Constantes.FORMATO_FECHA);
-            }
-            fechaSugerida.add(1, Constantes.HOUR);
-
-            if (fechaSugerida.hour() >= horaFin) {
-                fechaSugerida = moment(fechaSugerida).add(1, Constantes.DAY).hour(horaInicio).minute(0);
-            }
-
+        while (this.#esFinDeSemana(fechaLaborable)) {
+            fechaLaborable = fechaLaborable.add(1, "day");
         }
-        throw new Error(`No se encontró una fecha disponible después de ${maxDias} días`);
-    };
 
+        return fechaLaborable;
+    }
 
     /**
-     * Obtiene la cita propuesta por el cliente
-     * @param {String} respuesta Respuesta del cliente
-     * @param {Number} telefono Teléfono del cliente
-     * @returns Fecha de la cita
+     * Reconstruye una fecha completa a partir de los mensajes de la conversación.
+     * @param {string} incidenciaId Identificador de la incidencia.
+     * @returns {Promise<string|null>} Fecha formateada o null si no se pudo reconstruir.
      */
-    async fechaCitaConversacion(respuesta, telefono) {
-        let fecha = null;
-        try {
-            await this.#actualizarMensajeFechaParseada(respuesta, telefono);
-            fecha = await this.#obtenerFecha(telefono);
-        } catch (error) {
-            throw new Error("No se ha podido obtener una cita presencial dada la conversación con el cliente");
-        }
-        return fecha;
-    };
+    async #reconstruirFechaDesdeConversacion(incidenciaId) {
+        const mensajes = await this.mensajeService.obtenerMensajesPorIncidencia(incidenciaId);
 
-    /**
-     * Analiza el mensaje del cliente que contiene una posible fecha para una cita
-     * @param {String} respuesta 
-     * @param {Number} telefono
-     */
-    async #actualizarMensajeFechaParseada(respuesta, telefono) {
-        const mensaje = await this.mensajeService.obtenerMensaje(respuesta, telefono)
-        if (mensaje != null) {
-            const data = await this.parserClient.parsearFecha(respuesta);
-            const { fecha, tipo } = FechaTipoHelper.extraerFechaYTipo(data);
-            const nuevaFecha = await this.fechaParseadaService.crearFechaParseada(fecha, tipo)
-            mensaje.fechaParseada = nuevaFecha._id;
-            await mensaje.save();
-        }
+        const infoFecha = mensajes.reduce((acumulado, mensaje) => {
+            const fechaParseada = mensaje.fecha_parseada;
 
-    };
-    /**
-     * Obtiene una fecha completa para una cita a partir de los mensajes previamente enviados por un cliente.
-     * @param {Number} telefono Teléfono del cliente
-     * @returns {Fecha} fecha Fecha en formato ISO8601
-     */
-    async #obtenerFecha(telefono) {
-        //obtengo las fechas si hay mensajes
-        const mensajes = (await this.mensajeService.obtenerMensajes(telefono))
-        let fechaFinal = null;
 
-        let dia = null;
-        let hora = null;
-
-        for (let i = 0; i < mensajes.length; i++) {
-
-            const actual = mensajes[i].fechaParseada;
-
-            if ((actual.tipo) == Constantes.DAY) {
-                dia = FechaUTCUtils.obtenerDia(actual.fecha);
+            if (!fechaParseada) {
+                return acumulado;
             }
 
-            else if ((actual.tipo) == Constantes.HOUR) {
-                hora = FechaUTCUtils.obtenerHoraUTC(actual.fecha)
-            }
+            return {
+                dia: fechaParseada.tipo === Constantes.TIPO_FECHA_HORA
+                    ? acumulado.dia
+                    : fechaParseada.fecha,
+                hora: fechaParseada.tipo === Constantes.TIPO_FECHA_DIA
+                    ? acumulado.hora
+                    : fechaParseada.fecha
+            };
+        }, { dia: null, hora: null });
 
-            else {
-                // fecha completa
-                dia = FechaUTCUtils.obtenerDia(actual.fecha);
-                hora = FechaUTCUtils.obtenerHoraUTC(actual.fecha);
-            }
-            fechaFinal = `${dia}T${hora}`;
+        if (!infoFecha.dia || !infoFecha.hora) {
+            return null;
         }
 
-        if ((dia == null) || (hora == null)) {
-            return null
-        }
+        const dia = dayjs(infoFecha.dia).tz(Constantes.ZONA_HORARIA).format(Constantes.FORMATO_DIA);
+        const hora = dayjs(infoFecha.hora).tz(Constantes.ZONA_HORARIA).format(Constantes.FORMATO_HORA);
 
-        else
-            return fechaFinal;
+
+        return dayjs.utc(`${dia}T${hora}`).format(Constantes.FORMATO_FECHA);
     }
 }
-
-const gestor = new GestorFechas();
-
-gestor.buscarFechaDisponible();
-
 
 export { GestorFechas };

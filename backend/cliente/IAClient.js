@@ -1,95 +1,74 @@
-
 import dotenv from 'dotenv';
 import { OpenAI } from 'openai';
-import { FacebookClient } from "./FacebookClient.js";
-dotenv.config();
+import { ClienteIntegracion } from './ClienteIntegracion.js';
 
+dotenv.config();
 /**
- * Clase que genera la respuesta de IA con rol de gestor de citas
+ * Cliente para interactuar con la API de OpenAI
  */
-class IAClient {
+class IAClient extends ClienteIntegracion {
     /**
-     * Constructor de la clase IAClient
-     * @constructor
+     * Construye el cliente de OpenAI con la configuración del entorno.
      */
     constructor() {
-        /**
-         * Cliente de Facebook para WhatsApp Business
-         * @type {FacebookClient}
-         */
-        this.facebookClient = new FacebookClient();
+        super();
+        this.apiKey = this.validarConfiguracion(process.env.API_KEY, "API_KEY");
+        this.openai = new OpenAI({
+            apiKey: this.apiKey
+        });
     }
 
     /**
-     * Envía la respuesta de la IA al cliente mediante el API de WhatsApp Business
-     * @param {String} mensajes Mensajes de la respuesta del cliente
-     * @param {String} telefono Telefono del cliente
-     * @param {String} motivo Motivo de la cita
-     * @returns {String} Respuesta generada por IA
+     * Devuelve el nombre del servicio integrado.
+     * @returns {string}
      */
-    async respuestaChatGPT(mensajes, telefono, motivo) {
-        const responseChatGPT = await this.generarRespuestaChatGPT(mensajes, motivo)
-        const mensaje = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": telefono,
-            "type": "text",
-            "text": {
-                "preview_url": false,
-                "body": responseChatGPT
-            }
-        }
-        await this.facebookClient.llamadaServicio(mensaje)
-
-        return responseChatGPT;
+    getServiceName() {
+        return "OpenAI";
     }
 
     /**
-     * Genera una respuesta de IA para la gestión de citas
-     * Esta función coordina con el gestor de citas para obtener respuestas personalizadas
-     * basadas en el motivo de la consulta
-     * @param {String} mensaje Respuesta del usuario 
-     * @param {String} motivo Motivo de la cita
-     * @returns Respuesta de la IA
+     * Construye el prompt que define el comportamiento del asistente de IA
+     * @param {String} motivo - Motivo de la cita que debe influir en la respuesta 
+     * @returns {String} Prompt completo para el modelo de IA
      */
-    async generarRespuestaChatGPT(mensajes, motivo) {
+    construirPrompt(motivo) {
+        return `
+        Eres un gestor de citas presenciales. Tu tarea es:
+            1. Preguntar al usuario por un dia y una hora para la cita.
+            2. Si el usuario solo responde con el dia, insistir en que tambien proporcione la hora exacta antes de continuar.
+            3. No repetirte si ya te dieron el dato.
+            4. Adaptar la respuesta especificamente a este motivo: ${motivo}.
+            5. Si el usuario corrige el dia pero no menciona la hora, asumir que la hora anterior sigue siendo valida.
+            6. Verificar que la cita no caiga en fin de semana.
+            7. Verificar que la hora solicitada este entre las 08:00 y las 20:00.
+            8. Si la fecha cae en sabado o domingo, indicar al usuario que no se pueden ofrecer citas en fin de semana y pedirle un nuevo dia laborable.
+            9. Si la hora esta fuera del rango de 08:00 a 20:00, indicar al usuario que no se pueden ofrecer citas en ese horario y pedirle una nueva hora dentro del rango permitido.
+        `;
+    }
+
+
+    /**
+     * Genera una respuesta de seguimiento basada en los mensajes del usuario
+     * y el motivo de la cita
+     * @param {string} mensajes Conversación del usuario.
+     * @param {string} motivo Motivo de la cita.
+     * @returns {Promise<string>} Respuesta generada por el modelo de IA.
+     */
+    async generarRespuestaSeguimiento(mensajes, motivo) {
         try {
-            const apikey = process.env.API_KEY;
-            const openai = new OpenAI({
-                apiKey: apikey
-            });
-
-
-            const prompt_inicial = `
-                Eres un gestor de citas presenciales. Tu tarea es:
-                1. Preguntar al usuario por un día y una hora para la cita
-                2. Si el usuario solo responde con el día, debes insistir en que también proporcione la hora exacta antes de continuar
-                3. No te repitas si ya te dieron el dato
-                4. Este es un ${motivo} y debes adaptar tu respuesta específicamente para este tipo de cita
-                5. Si el usuario corrige el día pero no menciona la hora, asume que la hora anterior sigue siendo válida
-
-            `;
-
-            var response = await openai.chat.completions.create({
-                model: 'gpt-4',
+            const response = await this.openai.chat.completions.create({
+                model: 'gpt-5',
                 messages: [
-                    { "role": "system", "content": prompt_inicial },
-                    { "role": "user", "content": mensajes }
-                ],
-                max_tokens: 150,
-                temperature: 0.5
+                    { role: "system", content: this.construirPrompt(motivo) },
+                    { role: "user", content: mensajes }
+                ]
             });
-            return response.choices[0].message.content
-
+            console.log(" IA " + response.choices[0].message.content)
+            return response.choices[0].message.content;
         } catch (error) {
-            throw new Error('Error al generar respuesta de la IA');
+            throw this.construirError("generar la respuesta", error);
         }
-
     }
 }
-
-
-
-
 
 export { IAClient };

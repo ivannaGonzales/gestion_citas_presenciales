@@ -1,20 +1,30 @@
 
+import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from 'url';
-import { CoordinadorCita } from "../coordinador/CoordinadorCita.js";
+import { coordinadorCita, whatsappConfig } from "../infrastructure/WhatsAppApplication.js";
 import { getTextUser } from '../utilities/util.js';
-const coordinadorCita = new CoordinadorCita();
 
+dotenv.config();
+
+function obtenerContactoWhatsApp(body) {
+    const contacto =
+        body?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0] ?? null;
+
+    return contacto;
+}
+
+
+function obtenerTelefonoWhatsApp(body) {
+    const telefono = obtenerContactoWhatsApp(body)?.wa_id ?? null;
+
+    return telefono;
+}
 
 const enviarMensaje = async (req, res) => {
     try {
-        coordinadorCita.enviarMensaje();
-
-        return res.status(200).json({
-            success: true,
-            message: 'Mensaje enviado exitosamente algoritmo'
-        });
-
+        await coordinadorCita.enviarMensaje();
+        return res.status(200).json({ success: true, message: 'Mensaje enviado' });
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -23,15 +33,11 @@ const enviarMensaje = async (req, res) => {
         });
     }
 };
+
 const configurarTokenWhatsApp = async (req, res) => {
     try {
-        // Definir constantes
-        const access_token = 'access_token';
-
-        // Desestructurar los parámetros de consulta
         const { 'hub.verify_token': verifyToken, 'hub.challenge': challenge } = req.query;
 
-        // Verificar que tenemos todos los parámetros necesarios
         if (!verifyToken || !challenge) {
             return res.status(400).json({
                 success: false,
@@ -39,15 +45,14 @@ const configurarTokenWhatsApp = async (req, res) => {
             });
         }
 
-        // Verificar el token
-        if (verifyToken !== access_token) {
+        if (verifyToken !== whatsappConfig.verifyToken) {
             return res.status(400).json({
                 success: false,
                 message: 'Token no válido'
             });
         }
-        return res.json(Number(challenge));
 
+        return res.json(Number(challenge));
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -56,22 +61,24 @@ const configurarTokenWhatsApp = async (req, res) => {
         });
     }
 };
-
-
-
 
 const receiveMessage = async (req, res) => {
     try {
         const body = req.body;
-        const respuesta = await getTextUser(body);
-        //const { wa_id: telefono, profile: { name: usuario } } = body.entry[0].changes[0].value.contacts[0];
-        //creo que el usuario no es necesario
-        // coordinadorCita(usuario, telefono, respuesta)
-        const { wa_id: telefono } = body.entry[0].changes[0].value.contacts[0];
-        coordinadorCita.procesarMensaje(telefono, respuesta);
+        const datosMensaje = await getTextUser(body);
+        const mensajeUsuario = datosMensaje?.texto ?? null;
+        const telefono = datosMensaje?.telefono ?? null;
+        const tipoMensaje = datosMensaje?.tipo ?? null;
+
+        if (!telefono) {
+            return res.status(400).json({
+                success: false,
+                message: 'No se ha podido obtener el telefono del remitente'
+            });
+        }
+        await coordinadorCita.procesarMensaje(telefono, mensajeUsuario, tipoMensaje);
 
         return res.status(200).json({ success: true, message: 'EVENT_RECEIVED' });
-
     } catch (error) {
         return res.status(500).json({
             success: false,
@@ -80,12 +87,11 @@ const receiveMessage = async (req, res) => {
         });
     }
 };
-
-
 
 const politicas = async (req, res) => {
     const __filename = fileURLToPath(import.meta.url);
     const __dirname = path.dirname(__filename);
     res.sendFile(path.join(__dirname, '..', 'public', 'politicas.html'));
-}
+};
+
 export { configurarTokenWhatsApp, enviarMensaje, politicas, receiveMessage };

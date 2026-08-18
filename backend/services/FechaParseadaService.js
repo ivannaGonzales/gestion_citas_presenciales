@@ -1,35 +1,56 @@
-
-
-import FechaParseada from "../models/FechaParseada.js";
+import dayjs from "dayjs";
+import { FechaTipoHelper } from "../helpers/FechaTipoHelper.js";
 
 
 /**
- * Servicio encargado de gestionar operaciones relacionadas con el modelo FechaParseada.
- * @class
+ * Clase encargada de interpretar y convertir respuestas de usuario
+ * en objetos de fecha válidos
  */
 class FechaParseadaService {
     /**
-     * Constructor de la clase FechaParseadaService
-     * @class
+     * Crea un servicio de parseo de fechas.
+     * @param {Object} parserClient Cliente de parseo.
      */
-    constructor() {
-
+    constructor(parserClient) {
+        this.parserClient = parserClient;
     }
 
     /**
-     * Crea la fecha parseada
-     * @param {String} fecha Fecha en formato ISO8601
-     * @param {String} tipo Tipo de la fecha parseada
+     * Procesa la respuesta del usuario y devuelve una fecha válida junto con su tipo.
+     * 
+     * El método intenta extraer una fecha desde el texto proporcionado. Si el cliente de parseo
+     * no detecta ninguna fecha, o si el tipo de fecha es considerado inválido, se devuelve null
+     * @param {String} usuarioRespuesta - String ingresado por el usuario
+     * @returns {Objeto} { fecha: Date, tipo: "fecha_completa"}
+     *
+     * @example
+     * // Resultado esperado:
+     * // {
+     * //   fecha: 2026-08-12T11:00:00.000+00:00,
+     * //   tipo: "fecha_completa" | "dia" | "hora"
+     * // }
      */
-    async crearFechaParseada(fecha, tipo) {
-        const nuevaFecha = new FechaParseada({
-            fecha: fecha,
-            tipo: tipo
-        });
+    async crearFecha(usuarioRespuesta) {
+        const fechaClient = await this.parserClient.parsearFecha(usuarioRespuesta);
 
-        await nuevaFecha.save();
+        if (!fechaClient?.length) {
+            return null;
+        }
 
-        return nuevaFecha;
+        const { fecha, tipo } = FechaTipoHelper.extraerFechaTipo(fechaClient, usuarioRespuesta);
+
+
+
+        console.log("fecha " + fecha)
+        console.log("tipo " + tipo)
+        if (!fecha || tipo === "sin_fecha") {
+            return null;
+        }
+
+        return {
+            fecha: dayjs(fecha).toDate(),
+            tipo
+        };
     }
 }
 
