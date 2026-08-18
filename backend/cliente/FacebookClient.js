@@ -1,47 +1,54 @@
 import axios from 'axios';
-
 import dotenv from 'dotenv';
+import { ClienteIntegracion } from './ClienteIntegracion.js';
+
 dotenv.config();
-
-
 /**
- * Clase que se encarga de llamar al api de Facebook para mandar mensajes
- * vía whatsApp
+ * Cliente para enviar mensajes a través de la API de 
+ * WhatsApp Business
  */
-class FacebookClient {
+class FacebookClient extends ClienteIntegracion {
     /**
-    * Url base del API de WhatsApp Business
-    * @type {string}
-    */
-    static #api_url = "https://graph.facebook.com/v21.0/564314080092964/messages";
-    /**
-     * Encabezados HTTP para la autenticación y formato de mensajes
-     * @type {object}
-     * Content-Type @type {string}
-     * Authorization @type {string}
+     * URL base de la API de WhatsApp Business utilizada para enviar mensajes.
      */
-    static #headers = {
+    static #API_URL = "https://graph.facebook.com/v23.0/564314080092964/messages";
+
+    /**
+     * Cabeceras HTTP necesarias para la autenticación y envío de mensajes.
+     */
+    static #HEADERS = {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${process.env.TOKEN_WHATSAPP}`
     };
 
     /**
-     * Constructor de la clase FacebookClient
-     * @constructor
+     * Constructor
      */
     constructor() {
+        super();
+        this.validarConfiguracion(process.env.TOKEN_WHATSAPP, "TOKEN_WHATSAPP");
+    }
 
+    /**
+     * Devuelve el nombre del servicio integrado.
+     * @returns {string}
+     */
+    getServiceName() {
+        return "WhatsApp Business";
     }
 
     /**
      * Envía un mensaje a través de la API de WhatsApp Business
-     * @param {String} mensaje 
+     * @param {Object} mensaje Mensaje que se va a enviar.
+     * @returns {Promise<void>}
      */
-    async llamadaServicio(mensaje) {
+    async enviarMensaje(mensaje) {
         try {
-            await axios.post(FacebookClient.#api_url, mensaje, { headers: FacebookClient.#headers });
+            const response = await axios.post(FacebookClient.#API_URL, mensaje, {
+                headers: FacebookClient.#HEADERS
+            });
         } catch (error) {
-            throw new Error('Error al llamar al servicio de whatsApp');
+            throw this.construirError("enviar el mensaje", error);
         }
     }
 }

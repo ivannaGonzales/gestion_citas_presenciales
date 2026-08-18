@@ -5,13 +5,15 @@ import { MongoClient, ServerApiVersion } from 'mongodb';
 import mongoose from "mongoose";
 import path from "path";
 import { fileURLToPath } from 'url';
-import incidenciasRoutes from './routes/incidenciasRoutes.js';
 import whatsAppRoutes from './routes/whatsAppRoutes.js';
 
 
 const app = express();
 
-app.use(express.json())
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.text({ type: "text/plain" }));
+app.use(express.text({ type: "application/octet-stream" }));
 
 dotenv.config();
 
@@ -73,10 +75,9 @@ const corsOptions = {
 
 //app.use(cors(corsOptions));
 app.use("/api/gestion_citas_presenciales", whatsAppRoutes)
-app.use("/api/gestion_citas_presenciales", incidenciasRoutes)
 
 const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
-    console.log(`hOLA Servidor conectado en el puerto ${PORT}`)
+    console.log(`Servidor conectado en el puerto ${PORT}`)
 })

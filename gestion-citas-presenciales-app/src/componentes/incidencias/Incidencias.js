@@ -1,5 +1,6 @@
 
 import { Fragment, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import clienteAxios from '../../config/axios';
 import Incidencia from './Incidencia';
 //importar cliente axios
@@ -23,17 +24,23 @@ function Incidencias() {
         consultarAPI();
     }, [])
     return (
-        <Fragment>
+        < Fragment >
             <h2>Incidencias</h2>
+
+            <Link to={"/incidencias/nuevo"} class="btn btn-verde nvo-cliente"> <i class="fas fa-plus-circle"></i>
+                Nuevo Incidencia
+            </Link>
+
 
             <ul className='listado-incidencias'>
                 {incidencias.map(incidencia =>
                     <Incidencia
+                        key={incidencia._id}
                         incidencia={incidencia}
                     />
                 )}
             </ul>
-        </Fragment>
+        </Fragment >
 
     )
 }

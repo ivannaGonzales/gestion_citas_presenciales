@@ -3,16 +3,25 @@ import mongoose from "mongoose";
 
 /**
  * Modelo que representa una incidencia 
- * nombre: Nombre del cliente.
+ * telefonoContacto: Número de teléfono del cliente.
+ * usuarioId: Referencia al usuario asociado.
  * motivo: Motivo de la incidencia.
- * numero: Número de teléfono del cliente.
- * fecha: Fecha en la que esté programada la cita creada por la incidencia
- * resulta: Inicidencia resuelta si la cita ya está programda
+ * fecha: Fecha en la que esté programada la cita creada por la incidencia.
+ * resuelta: Incidencia resuelta si la cita ya está programada.
  */
 const incidenciaSchema = mongoose.Schema({
-    usuario: {
+    telefonoContacto: {
+        type: Number,
+        required: true,
+        index: true
+    },
+    usuarioId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Usuario"
+        ref: "Usuario",
+        required: false,
+        unique: true,
+        sparse: true,
+        index: true
     },
     motivo: {
         type: String,
@@ -21,30 +30,23 @@ const incidenciaSchema = mongoose.Schema({
     fecha: {
         type: Date,
         required: false,
-        default: Date.now()
+        default: Date.now
     },
-    incidencia: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Incidencia"
-    },
-
-    asignadoA: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Empleado", // referencia al técnico o empleado asignado
-        default: null
-    },
-
     resuelta: {
         type: Boolean,
         required: true
     },
-    empresa: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Empresa"
-    }
+    mensajes: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Mensaje"
+        }
+    ]
 }, {
     timestamps: true,
 })
+
+incidenciaSchema.index({ resuelta: 1, telefonoContacto: 1 });
 
 const Incidencia = mongoose.model('Incidencia', incidenciaSchema);
 

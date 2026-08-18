@@ -7,7 +7,12 @@
   "scripts": {
     "test": "jest",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "migrate:model-refactor": "node scripts/migrate-refactor-model.js",
+    "normalize:data-model": "node scripts/normalize-data-model.js",
+    "seed:demo-conversation": "node scripts/seed-demo-conversation.js",
+    "migrate:message-date-model": "node scripts/migrate-message-date-model.js",
+    "cleanup:final-model": "node scripts/cleanup-final-model.js"
   },
   "author": "Ivanna",
   "license": "ISC",
@@ -16,7 +21,9 @@
     "axios": "^1.7.9",
     "chrono-node": "^2.8.0",
     "circular-json": "^0.5.9",
+    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.19",
     "dotenv": "^16.4.7",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",

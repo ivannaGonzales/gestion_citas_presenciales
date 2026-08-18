@@ -2,7 +2,7 @@
 
 function Incidencia({ incidencia }) {
 
-    const { fecha, usuario, motivo, resuelta } = incidencia;
+    const { _id, fecha, usuario, motivo, resuelta } = incidencia;
     return (
         <li className="incidencia">
             <div class="info-incidencia">

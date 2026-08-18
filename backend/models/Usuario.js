@@ -13,7 +13,6 @@ const usuarioSchema = mongoose.Schema({
         type: String,
         required: true
     },
-
     dni: {
         type: String,
         required: true

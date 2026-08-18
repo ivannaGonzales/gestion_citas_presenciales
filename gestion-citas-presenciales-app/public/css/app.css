@@ -447,7 +447,50 @@ h3.resumen-titulo {
 }
 .login h2 {
     text-align: center;
+}.empleados-lista {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    margin-top: 5px;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 100%; /* Asegura que ocupe todo el ancho */
+    position: relative; /* Cambiado de absolute a relative */
+    box-sizing: border-box;
 }
-.login .contenedor-formulario {
 
+.selector-empleado {
+  position: relative !important;
+  width: 100% !important;
+  display: block;
+  box-sizing: border-box;
+}
+
+.empleado-item {
+    padding: 10px;
+    cursor: pointer;
+    background-color: #fff;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+    width: 100%; /* Asegura que ocupe todo el ancho */
+}
+
+.empleado-info {
+    flex: 1;
+}
+
+.empleado-departamento {
+    color: #666; /* Corregido de #fff a #666 para mejor visibilidad */
+    font-size: 0.9em;
+    margin-top: 2px;
+}
+
+.empleado-especialidad {
+    color: #999;
+    font-size: 0.8em;
+    margin-top: 2px;
 }
